@@ -73,7 +73,7 @@ function Header() {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant={wallet ? "secondary" : "default"} size="sm" className="gap-2 font-mono text-xs">
+              <Button variant={wallet ? "secondary" : "default"} size="sm" className="gap-2 font-mono text-xs" aria-label="Wallet menu">
                 <Wallet className="size-3.5" />
                 {wallet ? `${roleLabel} · ${short(wallet)}` : "Connect wallet"}
                 <ChevronDown className="size-3" />
