@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as OracleRouteImport } from './routes/oracle'
+import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +31,16 @@ const OracleRoute = OracleRouteImport.update({
   path: '/oracle',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsRoute = ProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectIdRoute = ProjectIdRouteImport.update({
   id: '/project/$id',
   path: '/project/$id',
@@ -39,12 +51,16 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/projects': typeof ProjectsRoute
+  '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/projects': typeof ProjectsRoute
+  '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesById {
@@ -52,20 +68,31 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/projects': typeof ProjectsRoute
+  '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docs' | '/oracle' | '/project/$id'
+  fullPaths: '/' | '/docs' | '/oracle' | '/projects' | '/shop' | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/docs' | '/oracle' | '/project/$id'
-  id: '__root__' | '/' | '/docs' | '/oracle' | '/project/$id'
+  to: '/' | '/docs' | '/oracle' | '/projects' | '/shop' | '/project/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/docs'
+    | '/oracle'
+    | '/projects'
+    | '/shop'
+    | '/project/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocsRoute: typeof DocsRoute
   OracleRoute: typeof OracleRoute
+  ProjectsRoute: typeof ProjectsRoute
+  ShopRoute: typeof ShopRoute
   ProjectIdRoute: typeof ProjectIdRoute
 }
 
@@ -92,6 +119,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OracleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects': {
+      id: '/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$id': {
       id: '/project/$id'
       path: '/project/$id'
@@ -106,6 +147,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocsRoute: DocsRoute,
   OracleRoute: OracleRoute,
+  ProjectsRoute: ProjectsRoute,
+  ShopRoute: ShopRoute,
   ProjectIdRoute: ProjectIdRoute,
 }
 export const routeTree = rootRouteImport
