@@ -113,8 +113,8 @@ describe("seed", () => {
   const s = seedState(NOW);
 
   it("stocks 500 panels less the seeded mints", () => {
-    expect(s.panelsMinted).toBe(120);
-    expect(s.shopStock).toBe(500 - 120);
+    expect(s.panelsMinted).toBe(126);
+    expect(s.shopStock).toBe(500 - 126);
   });
 
   it("leaves Springfield at 17/30 bonded with the demo wallet holding 4 shares and 8 loose panels", () => {
