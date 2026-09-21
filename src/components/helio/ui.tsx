@@ -1,27 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Gate, LoanState } from "@/lib/helio/types";
+import type { Gate, ProjectStatus } from "@/lib/helio/types";
 import { GATES } from "@/lib/helio/constants";
 
 export const usd = (n: number, digits = 0) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits });
 export const usdc = (n: number, digits = 2) =>
   `${n.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })} USDC`;
-export const pct = (bps: number, digits = 0) => `${(bps / 100).toFixed(digits)}%`;
-export const days = (sec: number) => `${Math.round(sec / 86400)}d`;
+export const pct = (fraction: number, digits = 1) => `${(fraction * 100).toFixed(digits)}%`;
 export const dateShort = (sec: number) =>
   new Date(sec * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-export function countdown(seconds: number): string {
-  if (seconds <= 0) return "0h";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m ${seconds % 60}s`;
-}
 
 export function Stat({ label, value, sub, className, accent }: { label: string; value: ReactNode; sub?: ReactNode; className?: string; accent?: boolean }) {
   return (
@@ -45,21 +34,18 @@ export function Row({ label, value, sub, strong, muted }: { label: ReactNode; va
   );
 }
 
-const stateStyles: Record<LoanState | "Open" | "Taken" | "Cancelled", string> = {
-  Active: "bg-volt/15 text-volt border-volt/40",
-  Extended: "bg-warning/15 text-warning border-warning/40",
-  Repaid: "bg-positive/15 text-positive border-positive/40",
-  Defaulted: "bg-destructive/15 text-destructive border-destructive/40",
-  Foreclosed: "bg-muted text-muted-foreground border-border",
-  Open: "bg-volt/15 text-volt border-volt/40",
-  Taken: "bg-muted text-muted-foreground border-border",
-  Cancelled: "bg-muted text-muted-foreground border-border",
+const statusStyles: Record<ProjectStatus, string> = {
+  Bonding: "bg-volt/15 text-volt border-volt/40",
+  Funded: "bg-warning/15 text-warning border-warning/40",
+  Energized: "bg-warning/15 text-warning border-warning/40",
+  Paying: "bg-positive/15 text-positive border-positive/40",
+  Complete: "bg-muted text-muted-foreground border-border",
 };
 
-export function Pill({ state, className }: { state: keyof typeof stateStyles; className?: string }) {
+export function Pill({ state, className }: { state: ProjectStatus; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider", stateStyles[state], className)}>
-      {(state === "Active" || state === "Open") && <span className="size-1.5 rounded-full bg-current animate-pulse-volt" />}
+    <span className={cn("inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider", statusStyles[state], className)}>
+      {(state === "Bonding" || state === "Paying") && <span className="size-1.5 rounded-full bg-current animate-pulse-volt" />}
       {state}
     </span>
   );
@@ -71,6 +57,15 @@ export function GateChip({ gate, className }: { gate: Gate; className?: string }
     <span title={g.title} className={cn("inline-flex items-center rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-foreground", className)}>
       {g.code}
     </span>
+  );
+}
+
+export function Progress({ value, total, className }: { value: number; total: number; className?: string }) {
+  const p = Math.min(100, (value / total) * 100);
+  return (
+    <div className={cn("h-1.5 w-full overflow-hidden rounded-sm bg-surface-2", className)}>
+      <div className="h-full bg-volt transition-[width] duration-500" style={{ width: `${p}%` }} />
+    </div>
   );
 }
 
@@ -100,13 +95,6 @@ export function SectionHead({ eyebrow, title, right }: { eyebrow?: string; title
 export function ProjectLink({ id, children }: { id: string; children: ReactNode }) {
   return (
     <Link to="/project/$id" params={{ id }} className="underline-offset-4 hover:text-volt hover:underline">
-      {children}
-    </Link>
-  );
-}
-export function LoanLink({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <Link to="/loan/$id" params={{ id }} className="underline-offset-4 hover:text-volt hover:underline">
       {children}
     </Link>
   );

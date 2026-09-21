@@ -1,22 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { GateTimeline } from "@/components/helio/GateTimeline";
-import { Empty, GateChip, LoanLink, Pill, ProjectLink, SectionHead, Stat, dateShort, usd, usdc } from "@/components/helio/ui";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { Empty, GateChip, Pill, Progress, SectionHead, Stat, dateShort, usd, usdc } from "@/components/helio/ui";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { GATES } from "@/lib/helio/constants";
-import { effectiveState, outstanding, short } from "@/lib/helio/ledger";
+import { distributedToShares, projectStatus, short } from "@/lib/helio/ledger";
 import { useHelio } from "@/lib/helio/store";
-import type { Gate } from "@/lib/helio/types";
+import type { Gate, HelioProject } from "@/lib/helio/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/oracle")({
   head: () => ({
     meta: [
-      { title: "Milestone oracle — HELIO admin" },
-      { name: "description", content: "Demo milestone oracle: advance G0–G7 gates and inject mock Ameren rebate / Illinois Shines REC payments into loan escrows." },
-      { property: "og:title", content: "Milestone oracle — HELIO" },
-      { property: "og:description", content: "Advance gates and post takeout payments so the demo never depends on Illinois servers." },
+      { title: "Oracle console — HELIO" },
+      { name: "description", content: "Admin console to advance Illinois Shines and Ameren milestones and inject rebate, first REC and REC tail USDC into HELIO projects." },
+      { property: "og:title", content: "Oracle console — HELIO" },
+      { property: "og:description", content: "Advance milestones and inject takeout USDC for the demo." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,152 +22,141 @@ export const Route = createFileRoute("/oracle")({
 });
 
 function Oracle() {
-  const h = useHelio();
-  const { state, now, role, wallet } = h;
-  const [sel, setSel] = useState<string | null>(null);
-  const project = state.projects.find((p) => p.id === sel) ?? state.projects[0];
-  const loan = project?.activeLoanId ? state.loans.find((l) => l.id === project.activeLoanId) : undefined;
-  const [amount, setAmount] = useState<number>(0);
-  const isAdmin = role === "admin";
+  const { state, role, connect, setGate, recordPayment } = useHelio();
 
-  const t = project?.takeout;
-  const rebateAmt = t ? t.amerenSolarRebate + t.amerenBatteryRebate : 0;
-  const recAmt = t ? t.firstRecPayment - t.recCollateralLock : 0;
+  if (role !== "admin") {
+    return (
+      <Empty
+        title="Oracle console is admin-only"
+        body="The oracle writes milestones and injects mock Ameren and Illinois Shines payments so the demo never depends on Illinois servers."
+        cta={
+          <Button variant="volt" onClick={() => connect("admin")}>
+            Load originator admin wallet
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10">
+    <div className="space-y-8">
       <SectionHead
-        eyebrow="Oracle · admin"
-        title="Milestone writer"
+        eyebrow="Admin"
+        title="Oracle console"
         right={
-          <div className="flex items-center gap-2">
-            <span className={cn("rounded-sm border px-2 py-1 font-mono text-[11px]", isAdmin ? "border-volt/50 text-volt" : "border-border text-muted-foreground")}>
-              {isAdmin ? `signer ${short(wallet ?? "")} · admin` : wallet ? "connected wallet is not the admin" : "not connected"}
-            </span>
-            <Button size="sm" variant="outline" onClick={() => h.connect("admin")}>Load oracle admin</Button>
+          <div className="flex gap-6">
+            <Stat label="Jobs" value={state.projects.length} sub="originated" />
+            <Stat label="Panels burned" value={state.panelsBurned} sub={`${state.panelsMinted} minted`} />
+            <Stat label="Originator fees" value={usd(state.projects.reduce((s, p) => s + p.originatorEarned, 0))} sub="20% of REC tail" accent />
           </div>
         }
       />
-      <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
-        In production this is a tiny server that watches the Illinois Shines portal and Ameren rebate status and signs <code className="font-mono text-xs">admin_set_gate</code> / <code className="font-mono text-xs">record_takeout_payment</code>.
-        For the demo you are the oracle: punch gates and drop mock USDC into loan escrows so nothing depends on Illinois servers.
-      </p>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-        <div className="panel">
-          <div className="border-b border-border px-4 py-3 text-xs text-muted-foreground">{state.projects.length} project notes</div>
-          <div className="divide-y divide-border">
-            {state.projects.map((p) => {
-              const l = p.activeLoanId ? state.loans.find((x) => x.id === p.activeLoanId) : undefined;
-              return (
-                <button key={p.id} onClick={() => setSel(p.id)} className={cn("flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-surface-2/60", project?.id === p.id && "bg-volt/5")}>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm">{p.name}</div>
-                    <div className="font-mono text-[10px] text-muted-foreground">{p.collection} · {p.specs.kwAc} kW AC · {p.id}</div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <GateChip gate={p.gate} />
-                    {l && <Pill state={effectiveState(l, now)} />}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {!project ? (
-          <Empty title="No projects" body="Reset the demo from the wallet menu." />
-        ) : (
-          <div className="space-y-6">
-            <div className="panel p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <div className="eyebrow">Project</div>
-                  <div className="font-display text-xl font-semibold"><ProjectLink id={project.id}>{project.name}</ProjectLink></div>
-                  <div className="text-xs text-muted-foreground">Trade Date {dateShort(project.tradeDate)} · AV {short(project.borrower)} · {loan ? <>live loan <LoanLink id={loan.id}>{loan.id}</LoanLink></> : "no active loan"}</div>
-                </div>
-                <GateChip gate={project.gate} />
-              </div>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-[1fr_auto]">
-                <GateTimeline gate={project.gate} />
-                <div className="space-y-1.5">
-                  <div className="eyebrow mb-2">Set gate</div>
-                  {GATES.filter((g) => g.id < 7).map((g) => (
-                    <Button
-                      key={g.id}
-                      size="sm"
-                      variant={project.gate === g.id ? "volt" : "outline"}
-                      className="w-full justify-start font-mono"
-                      disabled={!isAdmin}
-                      onClick={() => h.setGate(project.id, g.id as Gate)}
-                    >
-                      {g.code}
-                    </Button>
-                  ))}
-                  <div className="pt-1 text-[10px] text-muted-foreground">G7 is set by the program on full repay.</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="panel p-5">
-              <SectionHead eyebrow="Inject takeout payment" title="Mock Ameren / ABP wire → loan escrow" />
-              {!loan ? (
-                <div className="text-sm text-muted-foreground">No active loan on this note. Payments are posted into a loan escrow; accept an offer first from /borrow.</div>
-              ) : (
-                <>
-                  <div className="mb-4 grid grid-cols-3 gap-3">
-                    <Stat label="Escrow" value={usdc(loan.escrowBalance, 0)} />
-                    <Stat label="Outstanding" value={usdc(outstanding(loan), 0)} />
-                    <Stat label="State" value={<Pill state={effectiveState(loan, now)} />} />
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button variant="volt" className="h-auto flex-col items-start py-3" onClick={() => h.recordPayment(loan.id, "rebate", rebateAmt, `Ameren ${project.rateClass} smart-inverter rebate`)}>
-                      <span>Ameren rebate arrives → G5</span>
-                      <span className="num text-xs opacity-80">{usd(rebateAmt)} · {project.specs.kwDc} kW-DC × $300{project.specs.batteryKwh ? ` + ${project.specs.batteryKwh} kWh × $300` : ""}</span>
-                    </Button>
-                    <Button variant="volt" className="h-auto flex-col items-start py-3" onClick={() => h.recordPayment(loan.id, "rec", recAmt, "Illinois Shines first REC payment (50%) net of 5% collateral")}>
-                      <span>First REC payment arrives → G6</span>
-                      <span className="num text-xs opacity-80">{usd(recAmt)} · {t?.totalRecs} RECs × ${t?.effectivePrice.toFixed(2)} × {Math.round((t?.firstPaymentPct ?? 0) * 100)}% − 5%</span>
-                    </Button>
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <Input type="number" className="num" placeholder="custom USDC amount" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value))} />
-                    <Button variant="outline" disabled={amount <= 0} onClick={() => h.recordPayment(loan.id, "rebate", amount, "manual rebate credit")}>as rebate</Button>
-                    <Button variant="outline" disabled={amount <= 0} onClick={() => h.recordPayment(loan.id, "rec", amount, "manual REC credit")}>as REC</Button>
-                  </div>
-                  <div className="mt-3 text-[11px] text-muted-foreground">
-                    Anyone can post into escrow (it is just USDC into a PDA). Once escrow ≥ outstanding, the borrower — or you, as admin — triggers <code className="font-mono">repay</code> to run the waterfall.
-                    {loan.escrowBalance >= outstanding(loan) && loan.borrower && (
-                      <div className="mt-2">
-                        <Button size="sm" variant="volt" onClick={() => { h.connect("av"); setTimeout(() => h.repay(loan.id, 0), 50); }}>Switch to AV &amp; run waterfall</Button>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="panel p-5">
-              <SectionHead eyebrow="Treasury" title="Protocol fees" right={<Button size="sm" variant="outline" disabled={!isAdmin || state.config.treasuryBalance <= 0} onClick={() => h.claimFees()}>Claim {usdc(state.config.treasuryBalance, 0)}</Button>} />
-              <div className="text-xs text-muted-foreground">Unclaimed {usdc(state.config.treasuryBalance)} · treasury wallet {short(state.config.treasury)} holds {usdc(state.balances[state.config.treasury] ?? 0)}.</div>
-            </div>
-          </div>
-        )}
+      <div className="space-y-4">
+        {state.projects.map((p) => (
+          <OracleRow key={p.id} p={p} onGate={(g) => setGate(p.id, g)} onPay={(kind, amount, memo) => recordPayment(p.id, kind, amount, memo)} />
+        ))}
       </div>
 
-      <div className="panel mt-6">
-        <div className="border-b border-border px-4 py-3"><div className="eyebrow">Transaction log · newest first</div></div>
-        <div className="max-h-80 overflow-auto font-mono text-[11px]">
-          {[...state.log].reverse().slice(0, 60).map((e) => (
-            <div key={e.id} className="grid grid-cols-[110px_150px_100px_1fr] gap-3 border-b border-border/50 px-4 py-1.5">
-              <span className="text-muted-foreground">{dateShort(e.at)}</span>
-              <span className="text-volt">{e.ix}</span>
-              <span className="text-muted-foreground">{short(e.signer)}</span>
-              <span className="truncate">{e.detail}</span>
+      <div className="panel p-5">
+        <SectionHead eyebrow="Instruction log" title="Recent transactions" />
+        <div className="max-h-80 divide-y divide-border/60 overflow-y-auto text-sm">
+          {state.log.map((e) => (
+            <div key={e.id} className="flex items-baseline gap-3 py-2">
+              <span className="num shrink-0 text-[11px] text-muted-foreground">{dateShort(e.at)}</span>
+              <span className="shrink-0 rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] text-volt">{e.ix}</span>
+              <span className="min-w-0 flex-1 text-xs text-muted-foreground">{e.detail}</span>
+              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{short(e.signer)}</span>
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function OracleRow({
+  p,
+  onGate,
+  onPay,
+}: {
+  p: HelioProject;
+  onGate: (g: Gate) => void;
+  onPay: (kind: "rebate" | "rec" | "tail", amount: number, memo: string) => void;
+}) {
+  const t = p.takeout;
+  const funded = p.panelsBonded >= p.panelsRequired;
+  const rebate = t.amerenSolarRebate + t.amerenBatteryRebate;
+  const recNet = Math.max(0, t.takeout - rebate);
+  const tailQuarter = t.recTail / 24;
+  const paidKinds = new Set(p.payouts.map((x) => x.kind));
+
+  return (
+    <div className="panel space-y-4 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <GateChip gate={p.gate} />
+            <Pill state={projectStatus(p)} />
+          </div>
+          <Link to="/project/$id" params={{ id: p.id }} className="block truncate font-medium hover:text-volt">
+            {p.name}
+          </Link>
+          <div className="font-mono text-[11px] text-muted-foreground">
+            {p.city} · {p.specs.kwAc} kW AC / {p.specs.kwDc} kW-DC · {p.panelsBonded}/{p.panelsRequired} bonded
+          </div>
+          <Progress value={p.panelsBonded} total={p.panelsRequired} className="max-w-xs" />
+        </div>
+        <div className="flex gap-6">
+          <Stat label="Takeout" value={usd(t.takeout)} sub={`${usd(distributedToShares(p))} distributed`} />
+          <Stat label="Tail quarter" value={usdc(tailQuarter, 0)} sub="24 quarters" />
+        </div>
+      </div>
+
+      <div>
+        <div className="eyebrow mb-2">Advance milestone</div>
+        <div className="flex flex-wrap gap-1">
+          {GATES.map((g) => (
+            <button
+              key={g.id}
+              title={g.title}
+              disabled={g.id === p.gate}
+              onClick={() => onGate(g.id as Gate)}
+              className={cn(
+                "rounded-sm border px-2 py-1 font-mono text-[11px] transition-colors",
+                g.id === p.gate ? "border-volt bg-volt text-volt-foreground" : g.id < p.gate ? "border-volt/40 text-volt" : "border-border text-muted-foreground hover:border-volt/40",
+              )}
+            >
+              {g.code}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1.5 text-[11px] text-muted-foreground">{GATES[p.gate].title}</div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+        <Button
+          size="sm"
+          variant={paidKinds.has("rebate") ? "secondary" : "volt"}
+          disabled={!funded || paidKinds.has("rebate")}
+          onClick={() => onPay("rebate", rebate, `Ameren ${p.rateClass} rebate, ${p.specs.kwDc} kW-DC × $300${p.specs.batteryKwh ? ` + ${p.specs.batteryKwh} kWh × $300` : ""}`)}
+        >
+          Inject Ameren rebate {usd(rebate)}
+        </Button>
+        <Button
+          size="sm"
+          variant={paidKinds.has("rec") ? "secondary" : "volt"}
+          disabled={!funded || paidKinds.has("rec")}
+          onClick={() =>
+            onPay("rec", recNet, `Illinois Shines Part II — ${Math.round(t.firstPaymentPct * 100)}% of ${t.totalRecs} RECs × $${t.effectivePrice.toFixed(2)}, net of 5% collateral and 3% reserve`)
+          }
+        >
+          Inject first REC payment {usd(recNet)}
+        </Button>
+        <Button size="sm" variant="secondary" disabled={!funded} onClick={() => onPay("tail", tailQuarter, "REC tail quarterly payment (80% shares / 20% originator)")}>
+          Inject tail quarter {usd(tailQuarter)}
+        </Button>
+        {!funded && <span className="self-center text-[11px] text-muted-foreground">Job must be fully bonded before takeout can be distributed.</span>}
       </div>
     </div>
   );

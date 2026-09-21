@@ -15,8 +15,10 @@ import { useHelio } from "@/lib/helio/store";
 import { usdc } from "./ui";
 
 const nav = [
-  { to: "/lend", label: "Lend" },
-  { to: "/borrow", label: "Borrow" },
+  { to: "/shop", label: "Shop" },
+  { to: "/projects", label: "Projects" },
+  { to: "/portfolio", label: "Portfolio" },
+  { to: "/originate", label: "Originate" },
   { to: "/oracle", label: "Oracle" },
   { to: "/docs", label: "Docs" },
 ] as const;
@@ -24,7 +26,7 @@ const nav = [
 export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <DevnetBanner />
+      <div className="hazard h-1.5 w-full" aria-hidden />
       <Header />
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-8 md:px-8">{children}</main>
       <Footer />
@@ -32,15 +34,9 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function DevnetBanner() {
-  return (
-    <div className="hazard h-1.5 w-full" aria-hidden />
-  );
-}
-
 function Header() {
-  const { wallet, role, balance, ready, connect, disconnect, faucet, resetDemo } = useHelio();
-  const roleLabel = role === "lender" ? "Demo lender" : role === "av" ? "Demo Approved Vendor" : role === "admin" ? "Oracle admin" : "Wallet";
+  const { wallet, role, balance, panels, ready, connect, disconnect, faucet, resetDemo } = useHelio();
+  const roleLabel = role === "admin" ? "Originator admin" : role ? "Demo wallet" : "Wallet";
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
@@ -54,7 +50,7 @@ function Header() {
               devnet
             </span>
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {nav.map((n) => (
               <Link
                 key={n.to}
@@ -69,7 +65,9 @@ function Header() {
         </div>
         <div className="flex items-center gap-2">
           {wallet && (
-            <span className="num hidden text-xs text-muted-foreground sm:inline">{ready ? usdc(balance, 0) : "…"}</span>
+            <span className="num hidden text-xs text-muted-foreground sm:inline">
+              {ready ? `${panels} panels · ${usdc(balance, 0)}` : "…"}
+            </span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -81,9 +79,8 @@ function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel className="eyebrow">Demo keypairs (devnet)</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => connect("lender")}>Load demo lender</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => connect("av")}>Load demo AV (Approved Vendor)</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => connect("admin")}>Load oracle admin</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => connect("investor")}>Load demo wallet (panel holder)</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => connect("admin")}>Load originator admin</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled={!wallet} onClick={() => faucet(10_000)}>
                 <Droplets className="size-3.5" /> Faucet 10,000 USDC-dev
@@ -103,9 +100,9 @@ function Header() {
           </DropdownMenu>
         </div>
       </div>
-      <nav className="flex items-center gap-1 overflow-x-auto border-t border-border px-4 py-1 md:hidden">
+      <nav className="flex items-center gap-1 overflow-x-auto border-t border-border px-4 py-1 lg:hidden">
         {nav.map((n) => (
-          <Link key={n.to} to={n.to} className="rounded-sm px-3 py-1 text-sm text-muted-foreground" activeProps={{ className: "rounded-sm px-3 py-1 text-sm text-foreground bg-secondary" }}>
+          <Link key={n.to} to={n.to} className="shrink-0 rounded-sm px-3 py-1 text-sm text-muted-foreground" activeProps={{ className: "shrink-0 rounded-sm px-3 py-1 text-sm text-foreground bg-secondary" }}>
             {n.label}
           </Link>
         ))}

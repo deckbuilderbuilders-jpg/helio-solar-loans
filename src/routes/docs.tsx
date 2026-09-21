@@ -1,122 +1,143 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SOURCES } from "@/components/helio/Sources";
 import { SectionHead } from "@/components/helio/ui";
-import { GATES, GROUP_A_DG_REC_PRICES, OFFER_GRID } from "@/lib/helio/constants";
-import { DEMO } from "@/lib/helio/seed";
+import {
+  AMEREN_BATTERY_REBATE_PER_KWH,
+  AMEREN_SOLAR_REBATE_PER_KW_DC,
+  CAPACITY_FACTOR,
+  GATES,
+  GROUP_A_DG_REC_PRICES,
+  ORIGINATOR_TAIL_BPS,
+  PANEL_PRICE_USDC,
+  PANEL_WATTS_DC,
+} from "@/lib/helio/constants";
 
 export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
       { title: "Protocol docs — HELIO" },
-      { name: "description", content: "How HELIO works: collection order book, frozen Project Note, milestone gates, takeout escrow waterfall, and the Illinois sources behind every number." },
-      { property: "og:title", content: "HELIO protocol docs" },
-      { property: "og:description", content: "Short protocol spec and the Illinois Shines / Ameren sources encoded in the takeout engine." },
-      { property: "og:type", content: "website" },
+      { name: "description", content: "How HELIO panels, Project Shares and takeout work, plus the Illinois Shines 2026–27 and Ameren rebate sources behind every number." },
+      { property: "og:title", content: "Protocol docs — HELIO" },
+      { property: "og:description", content: "Panels, Project Shares, takeout math and Illinois sources." },
+      { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Docs,
 });
 
-const IX = [
-  ["initialize", "admin, USDC mint, fee bps, treasury"],
-  ["create_collection", "slug, gate_min, ltv_bps, default_apy_bps, term_seconds"],
-  ["post_offer", "lender deposits USDC into offer vault PDA"],
-  ["cancel_offer", "vault → lender"],
-  ["list_project", "mints Token-2022 Project Note to AV, stores specs + cached takeout"],
-  ["accept_offer", "collection match · gate ≥ min · principal ≤ lendable · freeze note · USDC → borrower (− origination → treasury)"],
-  ["admin_set_gate", "oracle writes G0–G6"],
-  ["record_takeout_payment", "anyone posts USDC into loan escrow tagged rebate | rec (implies G5 / G6)"],
-  ["repay", "waterfall: escrow + wallet → principal → interest (−10%) → residual; thaw note; G7"],
-  ["extend", "once, +30d at apy + 600 bps, before grace ends"],
-  ["foreclose", "after expiry + 72h: note → lender, escrow → lender"],
-  ["claim_fees", "treasury sweep"],
-] as const;
-
 function Docs() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <SectionHead eyebrow="Docs" title="Protocol in one page" />
-
-      <div className="prose-helio space-y-8 text-sm leading-relaxed text-muted-foreground">
-        <section>
-          <h2 className="font-display text-xl text-foreground">What HELIO is</h2>
-          <p>A Sharky-style fixed-term lending market where the collateral is not a JPEG floor but a <span className="text-foreground">contracted takeout</span>: the Ameren Illinois smart-inverter rebate plus the first Illinois Shines REC payment owed to an Approved Vendor (AV) once a project energizes. Lenders post USDC on a collection; AVs list a Project Note and accept an offer; the utility and the ABP repay the loan through an on-chain escrow waterfall.</p>
-          <p>No oracle price feed. No mid-loan liquidation. The only clock is the term: unpaid at expiry + 72h grace, the lender forecloses on the <em>claim</em>, not the panels.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Takeout formula</h2>
-          <pre className="overflow-x-auto rounded-sm border border-border bg-surface p-3 font-mono text-xs text-foreground">{`year1_recs  = floor1(kW_ac × 0.1642 × 8.760)
-total_recs  = floor(Σ_{t=0..14} year1_recs × 0.995^t)
-rec_price   = tier(kW_ac) + 20·customer_owned(≤25 kW) + 5·eec
-rec_amount  = total_recs × rec_price
-first_rec   = rec_amount × (kW_ac ≤ 25 ? 0.50 : 0.15)
-gross       = 300·kW_dc + 300·kWh_batt(paired) + first_rec − 0.05·rec_amount
-takeout     = gross × 0.97            // 3% protocol haircut reserve
-lendable    = takeout × min(collection_ltv, gate_ltv)
-interest    = principal × apy_bps × elapsed_s / (10_000 × 365 × 86 400)   // u64 µUSDC`}</pre>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Group A DG REC prices · 2026–27</h2>
-          <table className="w-full text-xs">
-            <tbody>
-              {GROUP_A_DG_REC_PRICES.map((r) => (
-                <tr key={r.label} className="border-b border-border/60"><td className="py-1.5 text-foreground">{r.label}</td><td className="num text-right">${r.price.toFixed(2)}</td></tr>
-              ))}
-              <tr className="border-b border-border/60"><td className="py-1.5">Customer-owned Small DG adder (no federal ITC)</td><td className="num text-right">+$20.00</td></tr>
-              <tr className="border-b border-border/60"><td className="py-1.5">Equity Eligible Contractor adder</td><td className="num text-right">+$5.00</td></tr>
-              <tr><td className="py-1.5 text-foreground">Effective 0–10 kW customer-owned EEC</td><td className="num text-right text-volt">$95.37</td></tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Gates</h2>
-          <ul className="space-y-1">
-            {GATES.map((g) => (<li key={g.id}><span className="font-mono text-volt">{g.code}</span> {g.title}{g.id >= 2 && g.id <= 4 ? <span className="ml-2 rounded-sm border border-border px-1 text-[10px]">originatable</span> : null}</li>))}
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Default offer grid</h2>
-          <table className="w-full text-xs">
-            <thead><tr className="text-left text-muted-foreground"><th className="py-1 font-normal">Gate</th><th className="font-normal">Term</th><th className="font-normal">APY</th><th className="font-normal">Orig.</th><th className="font-normal">LTV</th></tr></thead>
-            <tbody className="num">{OFFER_GRID.map((g) => (<tr key={g.gate} className="border-t border-border/60"><td className="py-1.5 font-sans text-foreground">{g.gateLabel}</td><td>{g.termDays}d</td><td>{g.apyBps / 100}%</td><td>{g.originationBps / 100}%</td><td>{g.ltvBps / 100}%</td></tr>))}</tbody>
-          </table>
-          <p className="mt-2">Protocol fee 10% of interest; origination to treasury. One 30-day extension at +6% APY, then foreclose.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Program instructions (Anchor · programs/helio)</h2>
-          <table className="w-full text-xs">
-            <tbody>{IX.map(([n, d]) => (<tr key={n} className="border-b border-border/60 align-top"><td className="py-1.5 pr-3 font-mono text-volt">{n}</td><td className="py-1.5">{d}</td></tr>))}</tbody>
-          </table>
-          <p className="mt-2">Accounts: Config, Collection, Offer (+ vault), Project (+ Token-2022 note mint with program freeze authority), Loan (+ escrow). Composability: plain USDC SPL, Token-2022 freeze/permanent-delegate for the note — any wallet or marketplace can read a frozen note as “encumbered”.</p>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Demo keypairs (devnet only)</h2>
-          <table className="w-full font-mono text-[11px]">
-            <tbody>
-              {Object.entries(DEMO).map(([k, v]) => (<tr key={k} className="border-b border-border/60"><td className="py-1 pr-3 text-foreground">{k}</td><td className="break-all">{v}</td></tr>))}
-            </tbody>
-          </table>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Illinois sources</h2>
-          <ul className="space-y-2">
-            {SOURCES.map((s) => (<li key={s.title}><span className="text-foreground">{s.title}</span> — {s.note}</li>))}
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="font-display text-xl text-foreground">Not in v1</h2>
-          <p>General-purpose money market · token emissions · IPA portal scraping · homeowner consumer loans · 15-year REC streaming as the loan (tail stays with the AV) · multi-chain · mobile-native · admin DAO.</p>
-        </section>
+    <div className="mx-auto max-w-3xl space-y-10">
+      <div className="space-y-3">
+        <div className="hazard h-1.5 w-24" />
+        <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Protocol</h1>
+        <p className="text-muted-foreground">
+          HELIO is an originator, not a lender. We underwrite Ameren Illinois solar jobs, publish them at a funding target of $1.00 per watt-DC, and let
+          panel holders fund the roof they choose.
+        </p>
       </div>
+
+      <Block title="Panels">
+        <p>
+          One Helio Panel represents {PANEL_WATTS_DC} W DC of underwriting capacity and mints for ${PANEL_PRICE_USDC} USDC. Panels are fungible and
+          transferable until they are bonded.
+        </p>
+      </Block>
+
+      <Block title="Bonding and Project Shares">
+        <p>
+          Burning panels into a project is permanent. A wallet's Project Share equals panels burned ÷ panels required, where panels required = ceil(kW-DC ×
+          1000 ÷ {PANEL_WATTS_DC}). When bonded panels reach the requirement, the job is Funded and construction proceeds.
+        </p>
+      </Block>
+
+      <Block title="Takeout">
+        <p>Takeout is the contracted cash a funded job returns to shares:</p>
+        <pre className="overflow-x-auto rounded-sm bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+{`takeout = ameren_solar_rebate
+        + ameren_battery_rebate
+        + first_rec_payment
+        − 5% rec_contract_collateral
+        − 3% protocol_haircut_reserve`}
+        </pre>
+        <p>
+          The remaining 6-year REC tail pays over 24 quarters and splits {100 - ORIGINATOR_TAIL_BPS / 100}% to Project Shares and{" "}
+          {ORIGINATOR_TAIL_BPS / 100}% to HELIO as the originator fee.
+        </p>
+      </Block>
+
+      <Block title="REC engine">
+        <p>
+          Nameplate is kW AC. Year-1 RECs = kW AC × {(CAPACITY_FACTOR * 100).toFixed(2)}% capacity factor × 8,760 h ÷ 1,000. The 15-year total sums
+          year-1 output degraded 0.5% annually and is rounded down to whole RECs. REC Purchase Amount = total RECs × effective price. Small DG (≤25 kW AC)
+          receives 50% at Energization/Part II; Large DG receives 15%.
+        </p>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+              <th className="py-2 font-normal">Group A DG tier</th>
+              <th className="py-2 text-right font-normal">$/REC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {GROUP_A_DG_REC_PRICES.map((t) => (
+              <tr key={t.label} className="border-b border-border/60">
+                <td className="py-1.5">{t.label}</td>
+                <td className="num py-1.5 text-right">${t.price.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p>
+          Stacked adders: customer-owned Small DG +$20/REC (no federal ITC), Equity Eligible Contractor +$5/REC. A 0–10 kW customer-owned EEC job prices
+          at $95.37/REC.
+        </p>
+      </Block>
+
+      <Block title="Ameren rebates">
+        <p>
+          ${AMEREN_SOLAR_REBATE_PER_KW_DC}/kW-DC on DS-1 and DS-2 generation, plus ${AMEREN_BATTERY_REBATE_PER_KWH}/kWh for storage only when paired with
+          qualifying solar. Rebates arrive roughly 60 days after Permission to Operate. Electing the generation rebate moves the site to supply +
+          transmission-only net metering — HELIO never models bill savings at full retail.
+        </p>
+      </Block>
+
+      <Block title="Milestones">
+        <ol className="space-y-1.5">
+          {GATES.map((g) => (
+            <li key={g.id} className="flex gap-3">
+              <span className="num shrink-0 font-mono text-xs text-volt">{g.code}</span>
+              <span>{g.title}</span>
+            </li>
+          ))}
+        </ol>
+      </Block>
+
+      <Block title="Sources">
+        <ul className="space-y-1.5">
+          <li>· Illinois Shines / Adjustable Block Program 2026–27 Program Guidebook — Group A Distributed Generation REC price tables and adders.</li>
+          <li>· Illinois Shines 2026–27 REC contract terms — 15-year delivery, 50% Small DG / 15% Large DG first payment, remainder over 24 quarters.</li>
+          <li>· Ameren Illinois distributed generation rebate tariff — $300/kW-DC (DS-1, DS-2), $300/kWh paired storage, ~60-day payment after PTO.</li>
+          <li>· Ameren Illinois net metering provisions for rebate-electing customers — supply + transmission-only credit.</li>
+        </ul>
+      </Block>
+
+      <Block title="Exclusions">
+        <ul className="space-y-1.5">
+          <li>· No mid-project liquidations and no price oracles — takeout is a tariffed rebate plus a utility REC invoice.</li>
+          <li>· Panels are a funding unit, not a yield instrument; the REC tail is disclosed but paid over six years.</li>
+          <li>· Devnet demonstration figures. Nothing here is an offer of securities or a guarantee of program payments.</li>
+        </ul>
+      </Block>
     </div>
+  );
+}
+
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <SectionHead title={title} />
+      <div className="space-y-3 text-sm leading-relaxed text-muted-foreground [&_li]:text-sm">{children}</div>
+    </section>
   );
 }

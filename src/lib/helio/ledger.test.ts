@@ -1,148 +1,135 @@
 import { describe, expect, it } from "vitest";
-import { GRACE_SECONDS } from "./constants";
-import {
-  HelioError,
-  acceptOffer,
-  balanceOf,
-  extend,
-  faucet,
-  foreclose,
-  interestDue,
-  listProject,
-  postOffer,
-  recordTakeoutPayment,
-  repay,
-} from "./ledger";
+import { bondPanels, buyPanels, claim, claimable, faucet, originateProject, projectStatus, recordTakeoutPayment, sharePct } from "./ledger";
 import { DEMO, emptyState, seedState } from "./seed";
 import { FLAGSHIP_SPECS } from "./takeout";
+import type { LedgerState } from "./types";
 
-const D = 86400;
-const NOW = 1_789_000_000; // Sep 2026
+const NOW = 1_790_000_000;
 
-function setup() {
+function withJob(): { state: LedgerState; projectId: string } {
   let s = emptyState();
-  s = faucet(s, DEMO.lender, 20_000, NOW);
-  const proj = listProject(s, {
-    borrower: DEMO.av,
-    name: "Flagship",
-    address: "Decatur, IL",
+  s = faucet(s, DEMO.investor, 20_000, NOW);
+  const r = originateProject(s, DEMO.admin, {
+    name: "Test — Springfield",
+    city: "Springfield, IL",
+    address: "1 Test St",
     rateClass: "DS-1",
     specs: FLAGSHIP_SPECS,
-    gate: 3,
+    tradeDate: NOW,
     now: NOW,
   });
-  s = proj.state;
-  const offer = postOffer(s, {
-    lender: DEMO.lender,
-    collection: "A-SDG-10",
-    principal: 9_720,
-    apyBps: 2400,
-    originationBps: 150,
-    termSeconds: 60 * D,
-    minGate: 3,
-    now: NOW,
-  });
-  s = offer.state;
-  return { s, project: proj.project, offer: offer.offer };
+  return { state: r.state, projectId: r.project.id };
 }
 
-describe("post_offer → accept → repay (flagship)", () => {
-  it("runs the full waterfall and thaws the note", () => {
-    let { s, project, offer } = setup();
-    expect(balanceOf(s, DEMO.lender)).toBe(20_000 - 9_720);
-
-    const acc = acceptOffer(s, { borrower: DEMO.av, offerId: offer.id, projectId: project.id, now: NOW });
-    s = acc.state;
-    const loan = acc.loan;
-    // borrower receives principal net of 1.5% origination
-    expect(balanceOf(s, DEMO.av)).toBeCloseTo(9_720 - 145.8, 6);
-    expect(s.config.treasuryBalance).toBeCloseTo(145.8, 6);
-    expect(s.projects[0]!.noteFrozen).toBe(true);
-
-    const due = interestDue(loan);
-    expect(Math.abs(due - 9_720 * 0.24 * (60 / 365))).toBeLessThan(0.01);
-
-    // takeout lands: rebate then REC
-    s = recordTakeoutPayment(s, { signer: DEMO.admin, loanId: loan.id, kind: "rebate", amount: 3_600, memo: "Ameren", now: NOW + 50 * D });
-    expect(s.projects[0]!.gate).toBe(5);
-    s = recordTakeoutPayment(s, { signer: DEMO.admin, loanId: loan.id, kind: "rec", amount: 9_918.48 - 991.85, memo: "REC", now: NOW + 55 * D });
-    expect(s.projects[0]!.gate).toBe(6);
-
-    const lenderBefore = balanceOf(s, DEMO.lender);
-    const avBefore = balanceOf(s, DEMO.av);
-    const r = repay(s, { signer: DEMO.av, loanId: loan.id, walletAmount: 0, now: NOW + 55 * D });
-    s = r.state;
-    expect(r.loan.state).toBe("Repaid");
-    expect(balanceOf(s, DEMO.lender) - lenderBefore).toBeCloseTo(9_720 + due * 0.9, 4);
-    expect(s.config.treasuryBalance).toBeCloseTo(145.8 + due * 0.1, 4);
-    const residual = balanceOf(s, DEMO.av) - avBefore;
-    expect(residual).toBeCloseTo(3_600 + 9_918.48 - 991.85 - 9_720 - due, 4);
-    expect(residual).toBeGreaterThan(1_900);
-    expect(s.projects[0]!.gate).toBe(7);
-    expect(s.projects[0]!.noteFrozen).toBe(false);
+describe("panel shop", () => {
+  it("mints panels at $400 and debits the buyer", () => {
+    const { state } = withJob();
+    const s = buyPanels(state, { buyer: DEMO.investor, count: 5, now: NOW }).state;
+    expect(s.panels[DEMO.investor]).toBe(5);
+    expect(s.balances[DEMO.investor]).toBe(20_000 - 2_000);
+    expect(s.balances[DEMO.treasury]).toBe(2_000);
+    expect(s.shopStock).toBe(495);
   });
 
-  it("supports partial prepay from wallet", () => {
-    let { s, project, offer } = setup();
-    const acc = acceptOffer(s, { borrower: DEMO.av, offerId: offer.id, projectId: project.id, now: NOW });
-    s = acc.state;
-    const r = repay(s, { signer: DEMO.av, loanId: acc.loan.id, walletAmount: 5_000, now: NOW + 10 * D });
-    expect(r.loan.state).toBe("Active");
-    expect(r.loan.principalRepaid).toBe(5_000);
+  it("refuses more panels than the wallet can pay for", () => {
+    const { state } = withJob();
+    expect(() => buyPanels(state, { buyer: DEMO.investor, count: 100, now: NOW })).toThrow(/holds/);
   });
 });
 
-describe("post_offer → accept → expire → foreclose", () => {
-  it("blocks foreclose during grace and transfers the note after", () => {
-    let { s, project, offer } = setup();
-    const acc = acceptOffer(s, { borrower: DEMO.av, offerId: offer.id, projectId: project.id, now: NOW });
-    s = acc.state;
-    const expiry = NOW + 60 * D;
-    expect(() => foreclose(s, DEMO.lender, acc.loan.id, expiry + 3600)).toThrow(HelioError);
-    s = foreclose(s, DEMO.lender, acc.loan.id, expiry + GRACE_SECONDS + 1);
-    expect(s.loans[0]!.state).toBe("Foreclosed");
-    expect(s.projects[0]!.noteOwner).toBe(DEMO.lender);
-    expect(s.projects[0]!.noteFrozen).toBe(false);
+describe("bonding burns panels permanently", () => {
+  it("mints a share equal to panels ÷ panels required", () => {
+    const { state, projectId } = withJob();
+    let s = buyPanels(state, { buyer: DEMO.investor, count: 6, now: NOW }).state;
+    s = bondPanels(s, { holder: DEMO.investor, projectId, panels: 6, now: NOW }).state;
+    expect(s.panels[DEMO.investor]).toBe(0);
+    expect(s.panelsBurned).toBe(6);
+    const p = s.projects[0]!;
+    expect(p.panelsRequired).toBe(30);
+    expect(p.panelsBonded).toBe(6);
+    expect(sharePct(s, p, DEMO.investor)).toBeCloseTo(0.2, 6);
+    expect(projectStatus(p)).toBe("Bonding");
   });
 
-  it("allows exactly one extension at +6% APY", () => {
-    let { s, project, offer } = setup();
-    const acc = acceptOffer(s, { borrower: DEMO.av, offerId: offer.id, projectId: project.id, now: NOW });
-    s = acc.state;
-    const baseDue = interestDue(acc.loan);
-    s = extend(s, DEMO.av, acc.loan.id, NOW + 59 * D);
-    expect(s.loans[0]!.state).toBe("Extended");
-    expect(s.loans[0]!.expiresAt).toBe(NOW + 90 * D);
-    expect(interestDue(s.loans[0]!)).toBeCloseTo(baseDue + 9_720 * 0.3 * (30 / 365), 4);
-    expect(() => extend(s, DEMO.av, acc.loan.id, NOW + 80 * D)).toThrow(/exactly once/);
+  it("cannot over-bond a job", () => {
+    const { state, projectId } = withJob();
+    let s = faucet(state, DEMO.whale, 100_000, NOW);
+    s = buyPanels(s, { buyer: DEMO.whale, count: 40, now: NOW }).state;
+    expect(() => bondPanels(s, { holder: DEMO.whale, projectId, panels: 31, now: NOW })).toThrow(/needs only 30/);
+  });
+
+  it("cannot bond panels you do not hold", () => {
+    const { state, projectId } = withJob();
+    expect(() => bondPanels(state, { holder: DEMO.investor, projectId, panels: 1, now: NOW })).toThrow(/unbonded/);
   });
 });
 
-describe("guards", () => {
-  it("rejects gate too low, collection mismatch and LTV breach", () => {
-    let { s, project } = setup();
-    const low = postOffer(s, { lender: DEMO.lender, collection: "A-SDG-10", principal: 1_000, apyBps: 1800, originationBps: 100, termSeconds: 30 * D, minGate: 4, now: NOW });
-    s = low.state;
-    expect(() => acceptOffer(s, { borrower: DEMO.av, offerId: low.offer.id, projectId: project.id, now: NOW })).toThrow(/G4/);
+describe("takeout distribution", () => {
+  function funded() {
+    const { state, projectId } = withJob();
+    let s = faucet(state, DEMO.whale, 100_000, NOW);
+    s = buyPanels(s, { buyer: DEMO.investor, count: 6, now: NOW }).state;
+    s = buyPanels(s, { buyer: DEMO.whale, count: 24, now: NOW }).state;
+    s = bondPanels(s, { holder: DEMO.investor, projectId, panels: 6, now: NOW }).state;
+    s = bondPanels(s, { holder: DEMO.whale, projectId, panels: 24, now: NOW }).state;
+    return { s, projectId };
+  }
 
-    const big = postOffer(s, { lender: DEMO.lender, collection: "A-SDG-10", principal: 9_000, apyBps: 2400, originationBps: 150, termSeconds: 60 * D, minGate: 3, now: NOW });
-    s = big.state;
-    // 9,000 + 9,720 already posted... lendable cap is 9,720.66, so 9,000 passes; bump project takeout check via bigger offer
-    expect(() => acceptOffer(s, { borrower: DEMO.lender, offerId: big.offer.id, projectId: project.id, now: NOW })).toThrow(/Approved Vendor/);
+  it("requires a fully bonded job before payments", () => {
+    const { state, projectId } = withJob();
+    expect(() => recordTakeoutPayment(state, { signer: DEMO.admin, projectId, kind: "rebate", amount: 100, memo: "x", now: NOW })).toThrow(/not fully bonded/);
+  });
+
+  it("pays rebate + REC pro-rata and lets holders claim", () => {
+    const { s: f, projectId } = funded();
+    let s = recordTakeoutPayment(f, { signer: DEMO.admin, projectId, kind: "rebate", amount: 3_600, memo: "rebate", now: NOW });
+    s = recordTakeoutPayment(s, { signer: DEMO.admin, projectId, kind: "rec", amount: 8_926, memo: "first REC", now: NOW });
+    const p = s.projects[0]!;
+    expect(p.gate).toBe(6);
+    expect(claimable(s, p, DEMO.investor)).toBeCloseTo((3_600 + 8_926) * 0.2, 4);
+    const before = s.balances[DEMO.investor] ?? 0;
+    const r = claim(s, { holder: DEMO.investor, projectId, now: NOW });
+    expect(r.amount).toBeCloseTo((3_600 + 8_926) * 0.2, 4);
+    expect(r.state.balances[DEMO.investor]).toBeCloseTo(before + r.amount, 4);
+    expect(() => claim(r.state, { holder: DEMO.investor, projectId, now: NOW })).toThrow(/nothing claimable/i);
+  });
+
+  it("splits the REC tail 80/20 with the originator", () => {
+    const { s: f, projectId } = funded();
+    const s = recordTakeoutPayment(f, { signer: DEMO.admin, projectId, kind: "tail", amount: 1_000, memo: "tail q1", now: NOW });
+    const p = s.projects[0]!;
+    expect(p.payouts[0]!.toShares).toBe(800);
+    expect(p.payouts[0]!.toOriginator).toBe(200);
+    expect(p.originatorEarned).toBe(200);
+  });
+
+  it("is admin-only", () => {
+    const { s: f, projectId } = funded();
+    expect(() => recordTakeoutPayment(f, { signer: DEMO.investor, projectId, kind: "rebate", amount: 1, memo: "x", now: NOW })).toThrow(/admin-only/);
   });
 });
 
 describe("seed", () => {
-  it("leaves the chain demo-ready", () => {
-    const s = seedState(NOW);
-    expect(s.collections).toHaveLength(4);
-    expect(s.offers.filter((o) => o.state === "Open")).toHaveLength(8);
-    expect(s.loans.filter((l) => l.state === "Repaid")).toHaveLength(1);
-    const foreclosable = s.loans.filter((l) => l.state === "Active" && NOW > l.expiresAt + GRACE_SECONDS);
-    expect(foreclosable).toHaveLength(1);
-    expect(foreclosable[0]!.lender).toBe(DEMO.lender);
-    const g4 = s.loans.find((l) => l.apyBps === 1800 && l.state === "Active");
-    expect(g4?.escrowBalance).toBe(2_880);
-    expect(s.projects.some((p) => p.gate === 2 && !p.activeLoanId)).toBe(true);
+  const s = seedState(NOW);
+
+  it("stocks 500 panels less the seeded mints", () => {
+    expect(s.panelsMinted).toBe(126);
+    expect(s.shopStock).toBe(500 - 126);
+  });
+
+  it("leaves Springfield at 17/30 bonded with the demo wallet holding 4 shares and 8 loose panels", () => {
+    const sp = s.projects.find((p) => p.name.startsWith("Prairie Ave"))!;
+    expect(sp.panelsBonded).toBe(17);
+    expect(sp.panelsRequired).toBe(30);
+    expect(s.panels[DEMO.investor]).toBe(8);
+    expect(sharePct(s, sp, DEMO.investor)).toBeCloseTo(4 / 30, 6);
+  });
+
+  it("has one fully funded job awaiting PTO and one paid-out job with a claim", () => {
+    const decatur = s.projects.find((p) => p.name.startsWith("Maple St"))!;
+    expect(projectStatus(decatur)).toBe("Funded");
+    const charleston = s.projects.find((p) => p.name.startsWith("Lincoln Trail"))!;
+    expect(projectStatus(charleston)).toBe("Paying");
+    expect(claimable(s, charleston, DEMO.investor)).toBeGreaterThan(1_000);
   });
 });

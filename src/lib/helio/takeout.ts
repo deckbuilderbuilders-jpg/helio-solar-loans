@@ -137,69 +137,11 @@ export function computeTakeout(specs: ProjectSpecs): TakeoutBreakdown {
   };
 }
 
-export function lendable(takeout: number, ltvBps: number): number {
-  return (takeout * ltvBps) / 10_000;
-}
-
-/** Interest = principal × apy_bps × elapsed_seconds / (10_000 × 365 × 86400). Mirrors the on-chain formula. */
-export function interestFor(principal: number, apyBps: number, elapsedSeconds: number): number {
-  return (principal * apyBps * elapsedSeconds) / (10_000 * SECONDS_PER_YEAR);
-}
-
-/** Same formula in u64 micro-USDC, exactly as the Anchor program computes it. */
-export function interestMicro(principalMicro: bigint, apyBps: bigint, elapsedSeconds: bigint): bigint {
-  return (principalMicro * apyBps * elapsedSeconds) / (10_000n * BigInt(SECONDS_PER_YEAR));
-}
-
 export function toMicro(usdc: number): bigint {
   return BigInt(Math.round(usdc * 1_000_000));
 }
 export function fromMicro(micro: bigint): number {
   return Number(micro) / 1_000_000;
-}
-
-export interface LoanQuote {
-  principal: number;
-  termDays: number;
-  apyBps: number;
-  originationBps: number;
-  origination: number;
-  interest: number;
-  protocolCut: number;
-  lenderNetInterest: number;
-  repayTotal: number;
-  borrowerNetAtOrigination: number;
-  borrowerResidualAfterTakeout: number;
-  /** Simple yield per turn and annualised for the lender */
-  turnYieldPct: number;
-  lenderNetApyPct: number;
-}
-
-export function quoteLoan(
-  takeout: number,
-  opts: { ltvBps: number; termDays: number; apyBps: number; originationBps: number; protocolFeeBps: number },
-): LoanQuote {
-  const principal = lendable(takeout, opts.ltvBps);
-  const interest = interestFor(principal, opts.apyBps, opts.termDays * 86400);
-  const origination = (principal * opts.originationBps) / 10_000;
-  const protocolCut = (interest * opts.protocolFeeBps) / 10_000;
-  const lenderNetInterest = interest - protocolCut;
-  const repayTotal = principal + interest;
-  return {
-    principal,
-    termDays: opts.termDays,
-    apyBps: opts.apyBps,
-    originationBps: opts.originationBps,
-    origination,
-    interest,
-    protocolCut,
-    lenderNetInterest,
-    repayTotal,
-    borrowerNetAtOrigination: principal - origination,
-    borrowerResidualAfterTakeout: takeout - repayTotal - origination,
-    turnYieldPct: (lenderNetInterest / principal) * 100,
-    lenderNetApyPct: (opts.apyBps / 100) * (1 - opts.protocolFeeBps / 10_000),
-  };
 }
 
 /** Flagship seeded project: 10 kW AC / 12 kW DC, customer-owned, EEC, no battery. */
