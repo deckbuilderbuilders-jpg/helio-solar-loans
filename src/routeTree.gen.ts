@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsRouteImport } from './routes/docs'
 import { Route as OracleRouteImport } from './routes/oracle'
+import { Route as OriginateRouteImport } from './routes/originate'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
@@ -29,6 +31,16 @@ const DocsRoute = DocsRouteImport.update({
 const OracleRoute = OracleRouteImport.update({
   id: '/oracle',
   path: '/oracle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OriginateRoute = OriginateRouteImport.update({
+  id: '/originate',
+  path: '/originate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsRoute = ProjectsRouteImport.update({
@@ -51,6 +63,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/originate': typeof OriginateRoute
+  '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
@@ -59,6 +73,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/originate': typeof OriginateRoute
+  '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
@@ -68,20 +84,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
   '/oracle': typeof OracleRoute
+  '/originate': typeof OriginateRoute
+  '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/docs' | '/oracle' | '/projects' | '/shop' | '/project/$id'
+  fullPaths:
+    | '/'
+    | '/docs'
+    | '/oracle'
+    | '/originate'
+    | '/portfolio'
+    | '/projects'
+    | '/shop'
+    | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/docs' | '/oracle' | '/projects' | '/shop' | '/project/$id'
+  to:
+    | '/'
+    | '/docs'
+    | '/oracle'
+    | '/originate'
+    | '/portfolio'
+    | '/projects'
+    | '/shop'
+    | '/project/$id'
   id:
     | '__root__'
     | '/'
     | '/docs'
     | '/oracle'
+    | '/originate'
+    | '/portfolio'
     | '/projects'
     | '/shop'
     | '/project/$id'
@@ -91,6 +127,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocsRoute: typeof DocsRoute
   OracleRoute: typeof OracleRoute
+  OriginateRoute: typeof OriginateRoute
+  PortfolioRoute: typeof PortfolioRoute
   ProjectsRoute: typeof ProjectsRoute
   ShopRoute: typeof ShopRoute
   ProjectIdRoute: typeof ProjectIdRoute
@@ -117,6 +155,20 @@ declare module '@tanstack/react-router' {
       path: '/oracle'
       fullPath: '/oracle'
       preLoaderRoute: typeof OracleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/originate': {
+      id: '/originate'
+      path: '/originate'
+      fullPath: '/originate'
+      preLoaderRoute: typeof OriginateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects': {
@@ -147,6 +199,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocsRoute: DocsRoute,
   OracleRoute: OracleRoute,
+  OriginateRoute: OriginateRoute,
+  PortfolioRoute: PortfolioRoute,
   ProjectsRoute: ProjectsRoute,
   ShopRoute: ShopRoute,
   ProjectIdRoute: ProjectIdRoute,
