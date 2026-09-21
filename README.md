@@ -1,68 +1,101 @@
 # HELIO
 
-**24% APY. 60 days. Paid by the utility.**
-Sharky-style fixed-term USDC loans for Illinois solar Approved Vendors, collateralised by the cash they are already owed: the Ameren Illinois rebate and the first Illinois Shines REC payment. Solana devnet. No oracle price liquidations.
+**Buy a panel. Burn it into a roof. Get paid by Ameren.**
+
+HELIO is a solar **originator platform** on Solana. HELIO underwrites real Ameren Illinois solar
+jobs, publishes each one at a funding target of **$1.00 per watt-DC**, and lets panel holders fund
+the specific roof they choose.
+
+There is no lending, no interest, no order book and no liquidation anywhere in the protocol.
+
+## The loop
+
+1. **Buy panels.** One Helio Panel = 400 W DC of underwriting capacity = **$400 USDC**.
+2. **HELIO originates.** Funding target = kW-DC × $1.00. Panels required = `ceil(kW_DC × 1000 / 400)`.
+3. **Burn into a roof.** Burning is permanent and mints a **Project Share** equal to
+   `panels_burned / panels_required`.
+4. **Get paid.** Once fully bonded the job is Funded. Ameren rebate and the first Illinois Shines
+   REC payment arrive in USDC and pay shares pro-rata. The 6-year REC tail splits **80% to shares,
+   20% to HELIO** as the originator fee.
+
+## Takeout math
 
 ```
-pnpm seed      # demo-ready chain state (4 collections, 8 offers, 6 notes, 1 defaulted, 1 repaid)
-anchor test    # program tests: post → accept → repay, post → accept → expire → foreclose
-pnpm dev       # http://localhost:8080
+takeout = ameren_solar_rebate          (kW-DC × $300, DS-1 / DS-2)
+        + ameren_battery_rebate        ($300/kWh, paired storage only)
+        + first_rec_payment            (50% Small DG ≤25 kW AC, 15% Large DG)
+        − 5%  rec_contract_collateral
+        − 3%  protocol_haircut_reserve
 ```
 
-> This repository's UI runs on TanStack Start. The Anchor program ships as source in `programs/helio`; the same state machine is mirrored 1:1 in `src/lib/helio/ledger.ts` and exercised by `bunx vitest run` (takeout math + waterfall). The web app runs against that ledger with seeded, deterministic state and advertised demo keypairs so the demo works on first click with no validator.
+REC engine (computed, never hardcoded): nameplate = kW AC, capacity factor 16.42%, 8,760 h,
+15-year term, 0.5% annual degradation, whole RECs rounded down. Illinois Shines 2026–27 Group A
+Distributed Generation prices with stacked adders: customer-owned Small DG +$20/REC (no federal
+ITC), Equity Eligible Contractor +$5/REC.
 
-## problemStatement
+Flagship seeded job — 10.00 kW AC / 12.00 kW-DC, customer-owned, EEC, Ameren DS-1:
 
-An Illinois Approved Vendor sells a 10 kW customer-owned array, installs it at ~$1.00/W-DC, and is owed $12,000 the day the utility grants Permission to Operate. The money that pays for it arrives late and in pieces: the Ameren $300/kW-DC rebate ~60 days after PTO, and — since the 2026–27 program year — only **50%** of the 15-year REC contract at Part II, with the rest ratably over 24 quarters. Sale-to-first-REC-check is 5–10 months. AVs finance that hole with progress-billing factoring at 2–5% per 30 days or stop selling.
+| Item | Value |
+| --- | --- |
+| Funding target / install cost | $12,000 (30 panels × $400) |
+| Effective REC price | $95.37 ($70.37 + $20 + $5) |
+| 15-year RECs | 208 |
+| REC purchase amount | $19,837 |
+| First REC payment (50%) | $9,918 |
+| Ameren rebate | $3,600 |
+| **Takeout to Project Shares** | **≈ $12,150** |
+| 6-year REC tail (24 quarters) | $9,918 → $7,935 to shares |
 
-## technicalApproach
+Electing the Ameren generation rebate moves the site to **supply + transmission-only** net
+metering; HELIO never models bill savings at full retail.
 
-- **Collection order book** (`A-SDG-10`, `A-SDG-10-ESS`, `A-SDG-25`, `A-LDG`): lenders post USDC offers with APY / term / minimum gate; USDC sits in an offer vault.
-- **Project Note**: a Token-2022 mint per project, held in the AV's wallet, with the program as freeze authority. `accept_offer` freezes it in place (escrow-less); `repay` thaws; `foreclose` transfers it to the lender. Foreclosure delivers the *claim* on the rebate + first REC invoice, not the panels.
-- **Milestone gates** G0–G7 written by a tiny oracle (`admin_set_gate`). Loans originate only at G2 (ICC Trade Date), G3 (PTO + rebate filed) or G4 (Part II / first invoice window). LTV cap = min(collection cap, gate grid 70/80/88%).
-- **Takeout engine** (`src/lib/helio/takeout.ts`, mirrored in Rust): REC quantity (16.42% CF, 15 yr, 0.5%/yr degradation), Group A price tiers + $20 customer-owned + $5 EEC adders, 50%/15% first payment, 5% collateral lock, 3% haircut, $300/kW-DC + $300/kWh Ameren rebate.
-- **Escrow waterfall** in `repay`: incoming takeout USDC → principal → interest net of 10% protocol fee → residual to the AV. Partial prepay allowed. One 30-day extension at +6% APY, then foreclose after expiry + 72h grace.
-- Interest is fixed-term simple interest computed in u64 micro-USDC: `principal × apy_bps × elapsed / (10_000 × 365 × 86_400)`.
+## Milestones (oracle-written)
 
-## targetAudience
+`G0` Sale/Disclosure signed · `G1` Part I verified · `G2` ICC Trade Date · `G3` PTO + rebate filed ·
+`G4` Ameren rebate received · `G5` Part II / Schedule B · `G6` first REC payment received ·
+`G7` takeout distributed to Project Shares.
 
-**Borrowers:** Illinois Approved Vendors (installers) who need PTO-day liquidity against contracted, tariffed cash.
-**Lenders:** stablecoin credit funds and DeFi LPs tired of 3–8% on idle USDC who want short-duration paper where the debtor is a utility and a state program, not a token price.
+## App
 
-## businessModel
+| Route | Purpose |
+| --- | --- |
+| `/` | Hero, four steps, featured job, protocol stats, underwriting calculator |
+| `/shop` | Mint 1 / 5 / 30 Helio 400 W panels |
+| `/projects` | Every originated job with location, kW, panels bonded, raised vs takeout |
+| `/project/$id` | Full underwrite, bond modal, milestones, holders, payouts, claims |
+| `/portfolio` | Unbonded panels, Project Shares, claimable and claimed USDC |
+| `/originate` | Admin desk: underwrite and publish a job |
+| `/oracle` | Admin console: advance gates, inject rebate / REC / tail USDC |
+| `/docs` | Protocol reference and Illinois sources |
 
-10% of interest (lender net on the 24% book is 21.6%) plus 1–2% origination to the treasury. The AV keeps the residual and the entire 6-year REC tail (~$9,900 on the flagship 10 kW) — so they come back for the next project instead of selling the tail to a factor.
-
-## competitiveLandscape
-
-| | Why not |
-|---|---|
-| Sharky / NFT lending | Right mechanics (fixed term, no oracle), wrong collateral (JPEG floors) |
-| Maple / Goldfinch / Huma / Credix | Generic private credit, 8–18%, no Illinois takeout engine, months to onboard a borrower |
-| Kamino / Jupiter / Save | Idle USDC at 3–8% |
-| Construction / progress-billing factoring | 2–5% per 30 days (24–60% APR), 30-day wires, and the factor takes the REC tail |
-
-## futureVision
-
-- EEC advance-of-capital collection (Illinois Shines' own pre-funding for Equity Eligible Contractors).
-- ComEd (Group B) book with its own rebate + REC tiers.
-- Tokenised 24-quarter REC tail as a separate, longer note.
-- Servicer AV network so a foreclosed note can be completed by another vendor.
-- Idle offer-vault USDC parked in Kamino between fills (display-only in v1).
-
-## Flagship numbers (asserted in `src/lib/helio/takeout.test.ts`)
-
-10.00 kW AC / 12.00 kW DC, customer-owned, EEC, no battery, Ameren DS-1:
-$95.37/REC · 14.38 year-1 RECs · 208 contract RECs · $19,837 REC contract · $9,918 first REC payment · $992 collateral · $3,600 rebate · **$12,150 takeout** · **$9,720 loan at 80% LTV** · 60-day interest at 24% ≈ $383 · AV clears ≈ $2,000 after repay and keeps the ~$9,918 tail. Adding a 13.5 kWh battery adds $4,050 to the takeout.
-
-## Layout
+## Repository
 
 ```
-programs/helio/          Anchor 0.30 program (lib.rs, tests/helio.ts)
-src/lib/helio/           constants · takeout engine · ledger state machine · seed · store
-src/components/helio/    Shell, Calculator, GateTimeline, OfferTable, WhyYield, Sources
-src/routes/              /  /lend  /borrow  /project/$id  /loan/$id  /oracle  /docs
-SPEC.md  DEMO.md
+src/lib/helio/        takeout engine, panel math, pure ledger, seed, provider  (mirrors the program)
+src/components/helio/ shell, calculator, project card, gate timeline, sources
+src/routes/           the pages above
+programs/helio/       Anchor program: buy_panels, originate_project, bond_panels,
+                      admin_set_gate, record_takeout_payment, claim
 ```
 
-Demo wallets are listed on `/docs`. Everything is devnet; nothing here is an offer of securities.
+The web app runs the ledger in TypeScript so the demo is deterministic and never depends on
+Illinois servers or a validator. `programs/helio/src/lib.rs` is the on-chain equivalent: same
+instructions, same u64 micro-USDC math, Token-2022 panels burned on bond.
+
+```bash
+bun install
+bun run dev        # http://localhost:8080
+bunx vitest run    # takeout + ledger tests
+```
+
+## Sources
+
+- Illinois Shines / Adjustable Block Program **2026–27 Program Guidebook** — Group A DG REC prices
+  and adders.
+- Illinois Shines 2026–27 REC contract terms — 15-year delivery, 50% Small DG / 15% Large DG first
+  payment, remainder over 24 quarters.
+- Ameren Illinois distributed generation rebate tariff — $300/kW-DC (DS-1, DS-2), $300/kWh paired
+  storage, ~60 days after PTO.
+- Ameren Illinois net metering for rebate-electing customers — supply + transmission credit only.
+
+Devnet demonstration. Not an offer of securities and not a guarantee of program payments.
