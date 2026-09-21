@@ -109,7 +109,7 @@ export function seedState(now: number): LedgerState {
   });
 
   // ── Panel mints ──
-  buy(DEMO.investor, 12, now - 60 * D); // 4 bonded on Springfield + 8 left unbonded
+  buy(DEMO.investor, 18, now - 60 * D); // 4 bonded on Springfield + 6 on Charleston + 8 left unbonded
   buy(DEMO.whale, 90, now - 100 * D);
   buy(DEMO.retail, 18, now - 90 * D);
 
