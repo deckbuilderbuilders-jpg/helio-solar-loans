@@ -1,30 +1,41 @@
 # HELIO — 3-minute demo script
 
-Before recording: `pnpm seed && pnpm dev`, open `/`, wallet disconnected. Reset demo from the wallet menu if state is dirty.
+Reset first: header wallet menu → **Reset demo state**. Seed leaves 500-panel mint (374 left),
+4 originated jobs, Springfield at 17/30, one funded job awaiting PTO, one paid-out job, and a demo
+wallet holding 8 unbonded panels plus shares on Springfield and Charleston.
 
-**0:00 — Problem** (landing hero)
-"An Illinois installer sells a 10 kW array at a dollar a watt. Twelve thousand dollars are due the day the utility turns it on. The Ameren rebate lands sixty days later. Since 2026 the REC contract pays only half up front, months after that. That's a five-to-ten-month cash hole, and today it's filled with factoring at two to five percent a month."
+**0:00 — The pitch (`/`)**
+"Buy a panel. Burn it into a roof. Get paid by Ameren." One panel is 400 watts DC for $400. HELIO
+originates real Ameren Illinois jobs at a dollar a watt. Point at the live stats: panels minted,
+panels bonded, kW-DC originated, takeout paid.
 
-**0:25 — Calculator** (scroll to Takeout engine)
-Type 10 kW AC / 12 kW DC. Flip *Customer-owned* and *EEC* off then on: "$70.37 plus $20 plus $5 — $95.37 a REC, 208 RECs, a $19.8k contract, half of it at Part II." Point at the three tiles: "$12k install, ~$12.1k contracted takeout, and a 60-day loan of $9,720 at 24% today." Click *Why this yield*: "That's 4–7× Kamino, above Maple, and cheaper than the factor."
+**0:25 — Underwriting is real (`/` calculator)**
+Toggle **customer-owned** and **EEC**. REC price moves $70.37 → $95.37, takeout moves, panels needed
+stay 30 for a 12 kW-DC array. Open **Sources**: Illinois Shines 2026–27 Group A table, the 50%
+first-payment split, the Ameren $300/kW-DC rebate and its 60-day clock.
 
-**0:50 — Lend** (`/lend`, Connect → Load demo lender)
-Click A-SDG-10. *Post offer*: $5,000, G3 grid pre-fills 24% / 60d / 1.5%. Deposit & post. "USDC is now in the offer vault. Fixed term, no oracle, no liquidation."
+**0:50 — Buy panels (`/shop`)**
+Header → **Load demo wallet (panel holder)**. Buy the 5-pack. Stock drops, wallet USDC drops,
+panel count in the header goes up.
 
-**1:10 — Borrow** (`/borrow`, Connect → Load demo AV)
-Select *Oakland Ave — Decatur* (G3, no loan). Best offers table shows the book sorted by APY; click *Accept best*. Loan page opens: "Principal landed in the AV wallet minus origination. The Project Note didn't move — it's frozen in the AV's wallet with the program as freeze authority."
+**1:10 — Burn into a roof (`/project/job-001`, Prairie Ave — Springfield)**
+Walk the takeout build-up: $3,600 Ameren rebate + $9,918 first REC payment − 5% collateral − 3%
+reserve = **$12,150 takeout**, $405 per panel plus $264 of tail. Click **Burn panels in**, burn 5.
+17/30 becomes 22/30. Say the line: burning is permanent, the share is the claim.
 
-**1:30 — Oracle** (`/oracle`, Load oracle admin)
-Select the same project. Punch **G4**. Click *Ameren rebate arrives → G5* ($3,600 into escrow). Click *First REC payment arrives → G6* (~$9,400). "Nothing here depends on Illinois servers — in production a small server signs these two instructions."
+**1:40 — Fund it out and energize (`/oracle`)**
+Header → **Load originator admin**. On the fully bonded Decatur job: advance **G3 → PTO + rebate
+filed**, then **Inject Ameren rebate** and **Inject first REC payment**. Each write shows the exact
+memo — kW-DC × $300, and RECs × $95.37 net of collateral and reserve.
 
-**1:50 — Waterfall** (click *Switch to AV & run waterfall*, land on `/loan/…`)
-"Escrow → principal back to the lender → interest, net of a 10% protocol fee → residual back to the AV. Note thawed, project at G7." Open `/project/…`: "And the AV keeps the six-year REC tail. We never lent against it."
+**2:15 — Get paid (`/portfolio`)**
+Back to the demo wallet. Bonded positions show panels, share percent, takeout attributable and
+claimable USDC. Click **Claim** on the paid-out Charleston job — USDC lands in the wallet.
 
-**2:10 — Foreclose** (`/lend`, Load demo lender)
-Route 51 Ag Barn is red: expired six days ago, past the 72-hour grace. Click *Foreclose*. "The lender receives the Project Note — the claim on the rebate and the REC invoice — plus whatever was in escrow. Not the panels."
+**2:40 — Close (`/docs`)**
+The takeout is a tariffed utility rebate plus a state REC invoice, not a floor price. No lending, no
+liquidations, no oracle prices. Holders take the 80% REC tail; HELIO keeps 20% for originating.
 
-**2:30 — Why Solana, why a company**
-"Every step you just saw settles in a slot. Factoring settles in 30-day wires. The whole book is three account types and twelve instructions; the note is plain Token-2022 so any wallet can read 'frozen' as 'encumbered'. We take 10% of interest and 1–2% origination; the AV keeps the tail and comes back next project. Illinois alone approves ~1 GW of small DG a year — that's a $300M+ annual takeout float."
-
-**2:50 — Ask**
-"We're looking for the first $2M of USDC on the G3 book and three Approved Vendors for a mainnet pilot in the 2026–27 program year."
+**Fallbacks**
+- Anything looks stale → **Reset demo state**.
+- Payment buttons disabled → the job is not fully bonded yet; bond the remaining panels first.
