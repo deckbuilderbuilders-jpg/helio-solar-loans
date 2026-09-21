@@ -52,64 +52,27 @@ export const REC_COLLATERAL_PCT = 0.05;
 /** Protocol haircut reserve: 3% of gross takeout. */
 export const PROTOCOL_HAIRCUT_PCT = 0.03;
 
-/** Protocol takes 10% of interest. */
-export const PROTOCOL_FEE_BPS = 1000;
-/** Grace after loan expiry before Foreclose is enabled: 72 hours. */
-export const GRACE_SECONDS = 72 * 3600;
-/** One 30-day extension at +6% APY penalty. */
-export const EXTENSION_SECONDS = 30 * 86400;
-export const EXTENSION_PENALTY_BPS = 600;
+/** One Helio Panel = 400 W DC of underwriting capacity. */
+export const PANEL_WATTS_DC = 400;
+/** Mint price of one panel, in USDC. */
+export const PANEL_PRICE_USDC = 400;
+/** Shop pack sizes. */
+export const PANEL_PACKS = [1, 5, 30] as const;
+
+/** HELIO keeps 20% of the 6-year REC tail as originator; 80% flows to Project Shares. */
+export const ORIGINATOR_TAIL_BPS = 2000;
 
 export const SECONDS_PER_YEAR = 365 * 86400;
 export const USDC_DECIMALS = 6;
 
-/** Default offer grid — the order-book starting offers. */
-export const OFFER_GRID = [
-  {
-    gate: 2,
-    gateLabel: "G2 ICC Trade Date",
-    termDays: 90,
-    apyBps: 2800,
-    originationBps: 200,
-    ltvBps: 7000,
-    why: "construction + program-admin queue risk",
-  },
-  {
-    gate: 3,
-    gateLabel: "G3 PTO / rebate-fileable",
-    termDays: 60,
-    apyBps: 2400,
-    originationBps: 150,
-    ltvBps: 8000,
-    why: "rebate clock is 60 days by tariff",
-  },
-  {
-    gate: 4,
-    gateLabel: "G4 Part II / Schedule B",
-    termDays: 30,
-    apyBps: 1800,
-    originationBps: 100,
-    ltvBps: 8800,
-    why: "invoice factoring against a utility",
-  },
-] as const;
-
-/** Market comps as of mid-2026, shown in the "Why this yield" drawer. */
-export const MARKET_COMPS = [
-  { name: "Kamino / Jupiter / Save USDC supply", band: "~3–8% APY", low: 3, high: 8, kind: "idle stables" },
-  { name: "Tokenized private credit (Maple, Goldfinch, Huma, Credix)", band: "~8–18% APY", low: 8, high: 18, kind: "private credit" },
-  { name: "US construction bridge / hard money", band: "~9.5–13.5% APY", low: 9.5, high: 13.5, kind: "real-estate debt" },
-  { name: "B2B invoice factoring", band: "0.50–3.50% per 30 days", low: 6, high: 42, kind: "factoring" },
-  { name: "Construction progress-billing factoring", band: "2–5% per 30 days (24–60% APR)", low: 24, high: 60, kind: "factoring" },
-] as const;
-
+/** Project milestone gates, written by the oracle / admin. */
 export const GATES = [
   { id: 0, code: "G0", title: "Sale / Disclosure Form signed" },
   { id: 1, code: "G1", title: "Part I verified (capacity reserved)" },
   { id: 2, code: "G2", title: "ICC Trade Date (REC contract path live)" },
   { id: 3, code: "G3", title: "Permission to Operate + rebate filed" },
-  { id: 4, code: "G4", title: "Part II verified / Schedule B / first invoice window open" },
-  { id: 5, code: "G5", title: "Rebate received (USDC credited to escrow)" },
-  { id: 6, code: "G6", title: "First REC payment received" },
-  { id: 7, code: "G7", title: "Loan repaid" },
+  { id: 4, code: "G4", title: "Ameren rebate received (USDC in)" },
+  { id: 5, code: "G5", title: "Part II verified / Schedule B issued" },
+  { id: 6, code: "G6", title: "First REC payment received (USDC in)" },
+  { id: 7, code: "G7", title: "Takeout distributed to Project Shares" },
 ] as const;
