@@ -362,8 +362,9 @@ function Welcome() {
             <p className="mt-6 max-w-2xl text-sm opacity-70">
               Even at the {pct(APR_CAP, 0)} cap, {LOCKUP_MIN_DAYS} days of interest on a 10 kW roof is about{" "}
               {usd(underwriteNote(10000, APR_CAP, LOCKUP_MIN_DAYS).interest)} — small against the{" "}
-              {usd(underwriteNote(10000, APR_CAP, LOCKUP_MIN_DAYS).takeout)} the job collects. The remaining 50% of the
-              15-year REC contract stays behind the note as cushion.
+              {usd(underwriteNote(10000, APR_CAP, LOCKUP_MIN_DAYS).takeout)} the job collects, which still covers the note{" "}
+              {underwriteNote(10000, APR_CAP, LOCKUP_MIN_DAYS).coverage.toFixed(2)}× at the cap. The installer funds the
+              other 15% of cost, and the remaining 50% of the 15-year REC contract stays behind the note as cushion.
             </p>
           </Reveal>
         </div>
