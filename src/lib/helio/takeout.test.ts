@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FLAGSHIP_ESS_SPECS, FLAGSHIP_SPECS, computeTakeout, recPriceTier } from "./takeout";
-import { fundingTarget, panelsRequired, underwrite } from "./panels";
-import { ORIGINATOR_TAIL_BPS } from "./constants";
+import { FLAGSHIP_SPECS, computeTakeout, recPriceTier } from "./takeout";
 
 const near = (actual: number, expected: number, tol = 5) => expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tol);
 
@@ -29,32 +27,6 @@ describe("flagship 10 kW AC / 12 kW DC customer-owned EEC project", () => {
     expect(t.amerenSolarRebate).toBe(3_600);
     expect(t.amerenBatteryRebate).toBe(0);
     near(t.takeout, 12_150);
-  });
-});
-
-describe("panel underwriting", () => {
-  it("needs 30 panels and $12,000 for the flagship 12 kW-DC job", () => {
-    expect(fundingTarget(12)).toBe(12_000);
-    expect(panelsRequired(12)).toBe(30);
-    const u = underwrite(FLAGSHIP_SPECS, ORIGINATOR_TAIL_BPS);
-    expect(u.panelsRequired).toBe(30);
-    expect(u.panelCost).toBe(12_000);
-    near(u.takeoutPerPanel, 12_150 / 30, 1);
-    // 80% of the ~$9,918 tail split over 30 panels
-    near(u.tailPerPanel, (9_918 * 0.8) / 30, 2);
-    expect(u.multiple).toBeGreaterThan(1);
-  });
-
-  it("rounds partial panels up", () => {
-    expect(panelsRequired(9.6)).toBe(24);
-    expect(panelsRequired(5.1)).toBe(13);
-  });
-
-  it("adds the $4,050 battery rebate to takeout per panel", () => {
-    const base = underwrite(FLAGSHIP_SPECS, ORIGINATOR_TAIL_BPS);
-    const ess = underwrite(FLAGSHIP_ESS_SPECS, ORIGINATOR_TAIL_BPS);
-    near(ess.takeout - base.takeout, 4_050 * 0.97, 5);
-    expect(ess.takeoutPerPanel).toBeGreaterThan(base.takeoutPerPanel);
   });
 });
 

@@ -1,271 +1,358 @@
 /**
- * HELIO ledger — a pure TypeScript mirror of the Anchor program in /programs/helio.
- * Instructions: faucet, buy_panels, originate_project, bond_panels (burn), admin_set_gate,
- * record_takeout_payment, claim.
+ * HELIO ledger — pure state transitions for the bridge-note + Yield NFT model.
  *
- * All amounts are USDC floats in the UI layer; the program uses u64 micro-USDC.
+ *   create_note     creator pays $20/kW application fee (burned if the note never funds)
+ *   deposit         lender adds principal while the auction is open
+ *   withdraw        pre-bonding exit, 2.5% fee (1.5% to stayers, 1.0% protocol)
+ *   (fill)          last dollar locks the clearing APR and mints Yield NFTs
+ *   fail_note       admin: auction abandoned, lenders refunded, creator fee lost
+ *   mark_built      admin: installer base $0.33/W (+ $0.02/W if done in one day)
+ *   mark_pto        admin: Permission to Operate
+ *   record_takeout  admin: rebates + first REC land → lenders repaid P+I, creator 3x cash
+ *   record_tail     admin: one quarter of PPA + REC tail → 65% NFTs / 28% HELIO / 7% installer
+ *   claim / list / delist / buy  Yield NFT cash and secondary market
  */
-import { ORIGINATOR_TAIL_BPS, PANEL_PRICE_USDC } from "./constants";
-import { fundingTarget, panelsRequired } from "./panels";
-import { computeTakeout, type ProjectSpecs } from "./takeout";
-import type { Address, Bond, Gate, HelioProject, LedgerState, Payout, PayoutKind, ProjectStatus, TxLogEntry } from "./types";
+import { APR_CAP, auctionApr, LOCKUP_MAX_DAYS, LOCKUP_MIN_DAYS, noteInterest } from "./auction";
+import {
+  APPLICATION_FEE_PER_KW,
+  CREATOR_CASH_MULTIPLE,
+  CREATOR_YIELD_MULTIPLE,
+  PREBOND_EXIT_FEE,
+  PREBOND_EXIT_TO_PROTOCOL,
+  PREBOND_EXIT_TO_STAYERS,
+  TAIL_QUARTERS,
+  TAIL_TO_HELIO,
+  TAIL_TO_INSTALLER,
+  TAIL_TO_YIELD,
+  projectEconomics,
+  type ProjectEconomics,
+} from "./economics";
+import type { Address, HelioNote, LedgerState, NoteStatus, Stage, TxLogEntry, YieldNft } from "./types";
 
 export class HelioError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-  ) {
+  constructor(public code: string, message: string) {
     super(message);
     this.name = "HelioError";
   }
 }
-
 const fail = (code: string, message: string): never => {
   throw new HelioError(code, message);
 };
 
-function nextId(state: LedgerState, prefix: string): [string, LedgerState] {
-  const counter = state.counter + 1;
-  return [`${prefix}-${counter.toString().padStart(3, "0")}`, { ...state, counter }];
-}
-
-function logTx(state: LedgerState, ix: string, signer: Address, detail: string, at: number): LedgerState {
-  const entry: TxLogEntry = { id: `tx-${state.counter}-${state.log.length}`, at, ix, signer, detail };
-  return { ...state, log: [entry, ...state.log].slice(0, 200) };
-}
-
 export const short = (a: Address) => (a.length > 12 ? `${a.slice(0, 4)}…${a.slice(-4)}` : a);
 export const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const EPS = 1e-6;
+const D = 86400;
 
-export function balanceOf(state: LedgerState, who: Address): number {
-  return state.balances[who] ?? 0;
+function nextId(s: LedgerState, prefix: string): [string, LedgerState] {
+  const counter = s.counter + 1;
+  return [`${prefix}-${counter.toString().padStart(3, "0")}`, { ...s, counter }];
 }
-export function panelsOf(state: LedgerState, who: Address): number {
-  return state.panels[who] ?? 0;
+function logTx(s: LedgerState, ix: string, signer: Address, detail: string, at: number): LedgerState {
+  const entry: TxLogEntry = { id: `tx-${s.counter}-${s.log.length}-${at}`, at, ix, signer, detail };
+  return { ...s, log: [entry, ...s.log].slice(0, 300) };
 }
-
-function credit(state: LedgerState, who: Address, amount: number): LedgerState {
-  return { ...state, balances: { ...state.balances, [who]: balanceOf(state, who) + amount } };
+export function balanceOf(s: LedgerState, who: Address) {
+  return s.balances[who] ?? 0;
 }
-
-function debit(state: LedgerState, who: Address, amount: number, what: string): LedgerState {
-  const bal = balanceOf(state, who);
-  if (bal + 1e-9 < amount) {
-    fail("InsufficientFunds", `${what}: wallet ${short(who)} holds ${fmt(bal)} USDC but ${fmt(amount)} USDC is required. Use the faucet.`);
-  }
-  return { ...state, balances: { ...state.balances, [who]: bal - amount } };
+function credit(s: LedgerState, who: Address, amt: number): LedgerState {
+  if (amt <= 0) return s;
+  return { ...s, balances: { ...s.balances, [who]: balanceOf(s, who) + amt } };
 }
-
-export function getProject(state: LedgerState, id: string): HelioProject {
-  return state.projects.find((p) => p.id === id) ?? fail("ProjectNotFound", `Project ${id} does not exist.`);
+function debit(s: LedgerState, who: Address, amt: number, what: string): LedgerState {
+  const bal = balanceOf(s, who);
+  if (bal + EPS < amt) fail("InsufficientFunds", `${what}: wallet holds ${fmt(bal)} USDC, needs ${fmt(amt)}. Use the faucet.`);
+  return { ...s, balances: { ...s.balances, [who]: bal - amt } };
 }
-
-function replace(list: HelioProject[], item: HelioProject): HelioProject[] {
-  return list.map((x) => (x.id === item.id ? item : x));
+function requireAdmin(s: LedgerState, signer: Address, ix: string) {
+  if (signer !== s.config.admin) fail("Unauthorized", `${ix} is admin-only. Load the oracle admin wallet from the header menu.`);
 }
-
-function requireAdmin(state: LedgerState, signer: Address, ix: string): void {
-  if (signer !== state.config.admin) {
-    fail("Unauthorized", `${ix} is admin-only. Load the oracle admin wallet from the header menu.`);
-  }
+export function getNote(s: LedgerState, id: string): HelioNote {
+  return s.notes.find((n) => n.id === id) ?? fail("NoteNotFound", `Note ${id} does not exist.`);
 }
-
-/* ── views ────────────────────────────────────────────────────────── */
-
-export function projectStatus(p: HelioProject): ProjectStatus {
-  if (p.panelsBonded < p.panelsRequired) return "Bonding";
-  if (p.gate >= 7) return "Complete";
-  if (p.payouts.some((x) => x.kind === "rec" || x.kind === "tail")) return "Paying";
-  if (p.gate >= 3) return "Energized";
-  return "Funded";
+function put(s: LedgerState, n: HelioNote): LedgerState {
+  return { ...s, notes: s.notes.map((x) => (x.id === n.id ? n : x)) };
 }
 
-export function bondedPanels(state: LedgerState, projectId: string, holder: Address): number {
-  return state.bonds.filter((b) => b.projectId === projectId && b.holder === holder).reduce((s, b) => s + b.panels, 0);
+/* ── views ─────────────────────────────────────────────────────────── */
+
+export const econOf = (n: HelioNote): ProjectEconomics => projectEconomics(n.kwDc, n.batteryKwh);
+export const raised = (n: HelioNote) => Object.values(n.deposits).reduce((a, b) => a + b, 0);
+export const target = (n: HelioNote) => econOf(n).buildCost;
+export const remaining = (n: HelioNote) => Math.max(0, target(n) - raised(n));
+
+export function liveApr(n: HelioNote, now: number): number {
+  if (n.clearingApr !== null) return n.clearingApr;
+  return auctionApr((now - n.openedAt) / 3600);
 }
 
-/** Share of the project held by this wallet, 0…1 (panels burned ÷ panels required). */
-export function sharePct(state: LedgerState, p: HelioProject, holder: Address): number {
-  return bondedPanels(state, p.id, holder) / p.panelsRequired;
+export function noteStatus(n: HelioNote): NoteStatus {
+  if (n.failed) return "Failed";
+  return (["Auction", "Auction", "Funded", "Building", "Awaiting takeout", "Repaid", "Streaming", "Complete"] as const)[n.stage];
 }
 
-export function distributedToShares(p: HelioProject): number {
-  return p.payouts.reduce((s, x) => s + x.toShares, 0);
+/** Lockup days from funding to `now`, clamped to the 90–120 day window. */
+export function lockupDays(n: HelioNote, now: number): number {
+  if (!n.fundedAt) return LOCKUP_MIN_DAYS;
+  return Math.min(LOCKUP_MAX_DAYS, Math.max(LOCKUP_MIN_DAYS, Math.round((now - n.fundedAt) / D)));
 }
 
-export function claimable(state: LedgerState, p: HelioProject, holder: Address): number {
-  const entitled = distributedToShares(p) * sharePct(state, p, holder);
-  return Math.max(0, entitled - (p.claims[holder] ?? 0));
+/** What the note owes all lenders at settlement. */
+export function lenderDue(n: HelioNote, now: number) {
+  const principal = raised(n);
+  const interest = noteInterest(principal, n.clearingApr ?? APR_CAP, lockupDays(n, now));
+  return { principal, interest, total: principal + interest };
 }
 
-export function holders(state: LedgerState, p: HelioProject): Array<{ holder: Address; panels: number; pct: number; claimed: number; claimable: number }> {
-  const map = new Map<Address, number>();
-  for (const b of state.bonds.filter((x) => x.projectId === p.id)) {
-    map.set(b.holder, (map.get(b.holder) ?? 0) + b.panels);
-  }
-  return [...map.entries()]
-    .map(([holder, panels]) => ({
-      holder,
-      panels,
-      pct: panels / p.panelsRequired,
-      claimed: p.claims[holder] ?? 0,
-      claimable: claimable(state, p, holder),
-    }))
-    .sort((a, b) => b.panels - a.panels);
+export function nftClaimable(n: HelioNote, nft: YieldNft): number {
+  return Math.max(0, nft.weight * n.accPerWeight - nft.claimed);
 }
 
-/* ── instructions ─────────────────────────────────────────────────── */
-
-export function faucet(state: LedgerState, who: Address, amount: number, now: number): LedgerState {
-  return logTx(credit(state, who, amount), "faucet", who, `+${fmt(amount)} USDC-dev to ${short(who)}`, now);
+/** Undiscounted tail still to come for this NFT (remaining REC quarters + PPA over those quarters). */
+export function nftRemainingValue(n: HelioNote, nft: YieldNft): number {
+  if (n.totalWeight <= 0) return 0;
+  const e = econOf(n);
+  const left = Math.max(0, TAIL_QUARTERS - n.tailQuarters);
+  const perQuarter = e.recTailPerQuarter + e.ppaMonthly * 3;
+  return (nft.weight / n.totalWeight) * left * perQuarter * TAIL_TO_YIELD;
 }
 
-/** buy_panels: transfers USDC to treasury and mints `count` Helio Panels (Token-2022) to the buyer. */
-export function buyPanels(state: LedgerState, a: { buyer: Address; count: number; now: number }): { state: LedgerState; cost: number } {
-  if (!Number.isInteger(a.count) || a.count <= 0) {
-    fail("BadPanelCount", "Panel count must be a whole number greater than zero.");
-  }
-  if (a.count > state.shopStock) {
-    fail("OutOfStock", `Only ${state.shopStock} panels remain in this mint. Reduce the quantity.`);
-  }
-  const cost = a.count * PANEL_PRICE_USDC;
-  let s = debit(state, a.buyer, cost, "Buy panels");
-  s = credit(s, s.config.treasury, cost);
-  s = {
-    ...s,
-    shopStock: s.shopStock - a.count,
-    panelsMinted: s.panelsMinted + a.count,
-    panels: { ...s.panels, [a.buyer]: panelsOf(s, a.buyer) + a.count },
-  };
-  return { state: logTx(s, "buy_panels", a.buyer, `Minted ${a.count} Helio 400W panel${a.count > 1 ? "s" : ""} for ${fmt(cost)} USDC`, a.now), cost };
+export const nftsOf = (s: LedgerState, who: Address) => s.nfts.filter((x) => x.owner === who);
+
+/* ── instructions ──────────────────────────────────────────────────── */
+
+export function faucet(s: LedgerState, who: Address, amount: number, now: number): LedgerState {
+  return logTx(credit(s, who, amount), "faucet", who, `+${fmt(amount)} USDC-dev to ${short(who)}`, now);
 }
 
-export interface OriginateArgs {
+export interface CreateArgs {
   name: string;
   city: string;
   address: string;
-  rateClass: "DS-1" | "DS-2";
-  specs: ProjectSpecs;
-  tradeDate: number;
-  gate?: Gate;
+  kwAc: number;
+  kwDc: number;
+  batteryKwh: number;
   now: number;
 }
 
-/** originate_project: HELIO publishes an underwritten job open for bonding. */
-export function originateProject(state: LedgerState, signer: Address, a: OriginateArgs): { state: LedgerState; project: HelioProject } {
-  requireAdmin(state, signer, "originate_project");
-  if (!a.name.trim()) fail("BadName", "Project needs a site name.");
-  const takeout = computeTakeout(a.specs);
-  const [id, s1] = nextId(state, "job");
-  const project: HelioProject = {
+/** Permissionless. The creator's fee is the only money at risk. */
+export function createNote(s: LedgerState, creator: Address, a: CreateArgs): { state: LedgerState; note: HelioNote } {
+  if (!a.name.trim()) fail("BadName", "Give the roof a name.");
+  if (!(a.kwDc > 0) || !(a.kwAc > 0)) fail("BadSize", "kW AC and kW DC must be positive.");
+  if (a.kwAc > 25) fail("TooLarge", "v1 notes are Small DG only (≤ 25 kW AC).");
+  if (a.batteryKwh < 0) fail("BadBattery", "Battery kWh cannot be negative.");
+  const fee = a.kwDc * APPLICATION_FEE_PER_KW;
+  let st = debit(s, creator, fee, "Application fee");
+  st = credit(st, st.config.treasury, fee);
+  const [id, s1] = nextId(st, "note");
+  const note: HelioNote = {
     id,
     name: a.name.trim(),
     city: a.city.trim(),
     address: a.address.trim(),
-    utility: "Ameren Illinois",
-    rateClass: a.rateClass,
-    tradeDate: a.tradeDate,
-    energizationDeadline: a.tradeDate + 18 * 30 * 86400,
-    specs: a.specs,
-    takeout,
-    fundingTarget: fundingTarget(a.specs.kwDc),
-    panelsRequired: panelsRequired(a.specs.kwDc),
-    panelsBonded: 0,
-    gate: a.gate ?? 2,
-    payouts: [],
-    claims: {},
-    originatorEarned: 0,
+    kwAc: a.kwAc,
+    kwDc: a.kwDc,
+    batteryKwh: a.batteryKwh,
+    creator,
+    applicationFee: fee,
+    stage: 1,
+    failed: false,
+    openedAt: a.now,
+    deposits: {},
+    exitBonus: {},
+    clearingApr: null,
+    fundedAt: null,
+    dayOne: null,
+    takeoutReceived: 0,
+    lendersRepaid: 0,
+    creatorPaid: 0,
+    tailQuarters: 0,
+    tailReceived: 0,
+    accPerWeight: 0,
+    totalWeight: 0,
+    helioEarned: 0,
+    installerEarned: 0,
     createdAt: a.now,
   };
-  const s2 = { ...s1, projects: [...s1.projects, project] };
+  const s2 = { ...s1, notes: [...s1.notes, note] };
   return {
-    state: logTx(s2, "originate_project", signer, `${project.name} · ${a.specs.kwDc} kW-DC · target ${fmt(project.fundingTarget)} USDC · ${project.panelsRequired} panels`, a.now),
-    project,
+    state: logTx(s2, "create_note", creator, `${note.name} · ${a.kwDc} kW-DC + ${a.batteryKwh} kWh · paid ${fmt(fee)} USDC application fee · auction open`, a.now),
+    note,
   };
 }
 
-/** bond_panels: burns panels permanently and mints a Project Share = panels ÷ panels_required. */
-export function bondPanels(state: LedgerState, a: { holder: Address; projectId: string; panels: number; now: number }): { state: LedgerState; bond: Bond } {
-  const p = getProject(state, a.projectId);
-  if (!Number.isInteger(a.panels) || a.panels <= 0) fail("BadPanelCount", "Bond a whole number of panels.");
-  const held = panelsOf(state, a.holder);
-  if (a.panels > held) fail("NotEnoughPanels", `You hold ${held} unbonded panel${held === 1 ? "" : "s"}. Buy more in the shop.`);
-  const room = p.panelsRequired - p.panelsBonded;
-  if (room <= 0) fail("ProjectFullyBonded", `${p.name} is fully bonded. Pick another project.`);
-  if (a.panels > room) fail("OverBond", `${p.name} needs only ${room} more panel${room === 1 ? "" : "s"}.`);
-
-  const [bondId, s1] = nextId(state, "bond");
-  const bond: Bond = { id: bondId, projectId: p.id, holder: a.holder, panels: a.panels, at: a.now };
-  const updated: HelioProject = { ...p, panelsBonded: p.panelsBonded + a.panels };
-  const s2: LedgerState = {
-    ...s1,
-    panels: { ...s1.panels, [a.holder]: held - a.panels },
-    panelsBurned: s1.panelsBurned + a.panels,
-    bonds: [...s1.bonds, bond],
-    projects: replace(s1.projects, updated),
-  };
-  const pctNow = (a.panels / p.panelsRequired) * 100;
-  return {
-    state: logTx(
-      s2,
-      "bond_panels",
-      a.holder,
-      `Burned ${a.panels} panel${a.panels > 1 ? "s" : ""} into ${p.name} → ${pctNow.toFixed(2)}% Project Share (${updated.panelsBonded}/${p.panelsRequired} bonded)`,
-      a.now,
-    ),
-    bond,
-  };
-}
-
-export function adminSetGate(state: LedgerState, signer: Address, projectId: string, gate: Gate, now: number): LedgerState {
-  requireAdmin(state, signer, "admin_set_gate");
-  const p = getProject(state, projectId);
-  if (gate > 2 && p.panelsBonded < p.panelsRequired) {
-    fail("NotFunded", `${p.name} is only ${p.panelsBonded}/${p.panelsRequired} bonded. A job must be fully funded before it energizes.`);
+export function deposit(s: LedgerState, a: { lender: Address; noteId: string; amount: number; now: number }): LedgerState {
+  const n = getNote(s, a.noteId);
+  if (n.failed || n.stage !== 1) fail("AuctionClosed", `${n.name} is no longer taking deposits.`);
+  if (!(a.amount > 0)) fail("BadAmount", "Deposit must be positive.");
+  const room = remaining(n);
+  const amt = Math.min(a.amount, room);
+  let st = debit(s, a.lender, amt, "Deposit");
+  let note: HelioNote = { ...n, deposits: { ...n.deposits, [a.lender]: (n.deposits[a.lender] ?? 0) + amt } };
+  const apr = liveApr(n, a.now);
+  let detail = `Deposited ${fmt(amt)} USDC into ${n.name} at ${(apr * 100).toFixed(2)}% live APR`;
+  if (room - amt < EPS) {
+    note = { ...note, stage: 2, clearingApr: apr, fundedAt: a.now };
+    detail += ` → filled, clearing APR ${(apr * 100).toFixed(2)}%`;
+    st = put(st, note);
+    st = mintNfts(st, note);
+    return logTx(st, "deposit", a.lender, detail, a.now);
   }
-  const s = { ...state, projects: replace(state.projects, { ...p, gate }) };
-  return logTx(s, "admin_set_gate", signer, `${p.name} → G${gate}`, now);
+  return logTx(put(st, note), "deposit", a.lender, detail, a.now);
 }
 
-/**
- * record_takeout_payment: real takeout USDC lands and is split to Project Shares.
- * Rebate and first REC payments go 100% to shares; the 6-year tail splits 80/20 with HELIO.
- */
-export function recordTakeoutPayment(
-  state: LedgerState,
-  a: { signer: Address; projectId: string; kind: PayoutKind; amount: number; memo: string; now: number },
-): LedgerState {
-  requireAdmin(state, a.signer, "record_takeout_payment");
-  const p = getProject(state, a.projectId);
-  if (a.amount <= 0) fail("BadAmount", "Payment amount must be positive.");
-  if (p.panelsBonded < p.panelsRequired) fail("NotFunded", `${p.name} is not fully bonded — no shares exist to pay yet.`);
-
-  const toOriginator = a.kind === "tail" ? (a.amount * ORIGINATOR_TAIL_BPS) / 10_000 : 0;
-  const toShares = a.amount - toOriginator;
-  const [payoutId, s1] = nextId(state, "pay");
-  const payout: Payout = { id: payoutId, kind: a.kind, amount: a.amount, toShares, toOriginator, at: a.now, memo: a.memo };
-  const gateFloor: Gate = a.kind === "rebate" ? 4 : a.kind === "rec" ? 6 : p.gate;
-  const updated: HelioProject = {
-    ...p,
-    payouts: [...p.payouts, payout],
-    originatorEarned: p.originatorEarned + toOriginator,
-    gate: (Math.max(p.gate, gateFloor) as Gate),
-  };
-  let s = { ...s1, projects: replace(s1.projects, updated) };
-  if (toOriginator > 0) s = credit(s, s.config.treasury, toOriginator);
-  const label = a.kind === "rebate" ? "Ameren rebate" : a.kind === "rec" ? "First REC payment" : "REC tail quarter";
-  return logTx(s, "record_takeout_payment", a.signer, `${label} ${fmt(a.amount)} USDC on ${p.name} → ${fmt(toShares)} to shares${toOriginator ? `, ${fmt(toOriginator)} originator` : ""}`, a.now);
-}
-
-/** claim: pulls a holder's pro-rata share of everything distributed so far. */
-export function claim(state: LedgerState, a: { holder: Address; projectId: string; now: number }): { state: LedgerState; amount: number } {
-  const p = getProject(state, a.projectId);
-  const amount = claimable(state, p, a.holder);
-  if (amount <= 0.000001) {
-    fail("NothingToClaim", `${short(a.holder)} has nothing claimable on ${p.name} yet.`);
+function mintNfts(s: LedgerState, n: HelioNote): LedgerState {
+  let st = s;
+  const minted: YieldNft[] = [];
+  const entries: Array<[Address, number, YieldNft["kind"]]> = Object.entries(n.deposits)
+    .filter(([, v]) => v > EPS)
+    .map(([k, v]) => [k, v, "lender"]);
+  entries.push([n.creator, n.applicationFee * CREATOR_YIELD_MULTIPLE, "creator"]);
+  for (const [owner, weight, kind] of entries) {
+    const [id, s1] = nextId(st, "ynft");
+    st = s1;
+    minted.push({ id, noteId: n.id, owner, weight, kind, claimed: 0, listPrice: null });
   }
-  const updated: HelioProject = { ...p, claims: { ...p.claims, [a.holder]: (p.claims[a.holder] ?? 0) + amount } };
-  let s: LedgerState = { ...state, projects: replace(state.projects, updated) };
-  s = credit(s, a.holder, amount);
-  return { state: logTx(s, "claim", a.holder, `Claimed ${fmt(amount)} USDC from ${p.name}`, a.now), amount };
+  const totalWeight = minted.reduce((a, b) => a + b.weight, 0);
+  return put({ ...st, nfts: [...st.nfts, ...minted] }, { ...n, totalWeight });
 }
+
+export function withdraw(s: LedgerState, a: { lender: Address; noteId: string; amount: number; now: number }) {
+  const n = getNote(s, a.noteId);
+  if (n.failed || n.stage !== 1) fail("Locked", `${n.name} has filled. Principal is locked until takeout.`);
+  const held = n.deposits[a.lender] ?? 0;
+  if (!(a.amount > 0) || a.amount > held + EPS) fail("BadAmount", `You have ${fmt(held)} USDC in this note.`);
+  const amt = Math.min(a.amount, held);
+  const refund = amt * (1 - PREBOND_EXIT_FEE);
+  const toStayers = amt * PREBOND_EXIT_TO_STAYERS;
+  const toProtocol = amt * PREBOND_EXIT_TO_PROTOCOL;
+  const deposits = { ...n.deposits, [a.lender]: held - amt };
+  if ((deposits[a.lender] ?? 0) < EPS) delete deposits[a.lender];
+  const stayers = Object.entries(deposits);
+  const stayTotal = stayers.reduce((x, [, v]) => x + v, 0);
+  const exitBonus = { ...n.exitBonus };
+  let protocolCut = toProtocol;
+  if (stayTotal > EPS) {
+    for (const [who, v] of stayers) exitBonus[who] = (exitBonus[who] ?? 0) + (toStayers * v) / stayTotal;
+  } else protocolCut += toStayers;
+  let st = put(s, { ...n, deposits, exitBonus });
+  st = credit(st, a.lender, refund);
+  st = credit(st, st.config.treasury, protocolCut);
+  return logTx(st, "withdraw", a.lender, `Withdrew ${fmt(amt)} from ${n.name}: ${fmt(refund)} back, ${fmt(toStayers)} to stayers, ${fmt(toProtocol)} protocol`, a.now);
+}
+
+export function failNote(s: LedgerState, signer: Address, noteId: string, now: number): LedgerState {
+  requireAdmin(s, signer, "fail_note");
+  const n = getNote(s, noteId);
+  if (n.stage !== 1 || n.failed) fail("NotInAuction", "Only an open auction can be failed.");
+  let st = s;
+  for (const [who, v] of Object.entries(n.deposits)) st = credit(st, who, v + (n.exitBonus[who] ?? 0));
+  // Bonus owed to lenders who fully exited was funded from exit fees; pay those too.
+  for (const [who, v] of Object.entries(n.exitBonus)) if (!(who in n.deposits)) st = credit(st, who, v);
+  st = put(st, { ...n, failed: true });
+  return logTx(st, "fail_note", signer, `${n.name} did not fill. Lenders refunded in full; ${fmt(n.applicationFee)} application fee lost.`, now);
+}
+
+export function markBuilt(s: LedgerState, signer: Address, noteId: string, dayOne: boolean, now: number): LedgerState {
+  requireAdmin(s, signer, "mark_built");
+  const n = getNote(s, noteId);
+  if (n.stage !== 2) fail("WrongStage", `${n.name} must be funded and not yet built.`);
+  const e = econOf(n);
+  const pay = e.installerBase + (dayOne ? e.installerDayOneBonus : 0);
+  let st = credit(s, s.config.installer, pay);
+  st = put(st, { ...n, stage: 3, dayOne });
+  return logTx(st, "mark_built", signer, `${n.name} built${dayOne ? " in one day" : ""} → installer paid ${fmt(pay)} USDC`, now);
+}
+
+export function markPto(s: LedgerState, signer: Address, noteId: string, now: number): LedgerState {
+  requireAdmin(s, signer, "mark_pto");
+  const n = getNote(s, noteId);
+  if (n.stage !== 3) fail("WrongStage", `${n.name} must be built before PTO.`);
+  return logTx(put(s, { ...n, stage: 4 }), "mark_pto", signer, `${n.name} received Ameren Permission to Operate`, now);
+}
+
+/** Takeout waterfall: lenders P+I → creator 3x cash → surplus to HELIO. */
+export function recordTakeout(s: LedgerState, signer: Address, noteId: string, amount: number, now: number): LedgerState {
+  requireAdmin(s, signer, "record_takeout");
+  const n = getNote(s, noteId);
+  if (n.stage !== 4) fail("WrongStage", `${n.name} needs PTO before takeout.`);
+  if (!(amount > 0)) fail("BadAmount", "Takeout must be positive.");
+  const due = lenderDue(n, now);
+  const lendersPay = Math.min(amount, due.total);
+  let left = amount - lendersPay;
+  const creatorPay = Math.min(left, n.applicationFee * CREATOR_CASH_MULTIPLE);
+  left -= creatorPay;
+  let st = s;
+  const ratio = due.total > 0 ? lendersPay / due.total : 0;
+  for (const [who, v] of Object.entries(n.deposits)) {
+    const owed = v + noteInterest(v, n.clearingApr ?? 0, lockupDays(n, now));
+    st = credit(st, who, owed * ratio + (n.exitBonus[who] ?? 0));
+  }
+  st = credit(st, n.creator, creatorPay);
+  st = credit(st, st.config.treasury, left);
+  st = put(st, { ...n, stage: 5, takeoutReceived: amount, lendersRepaid: lendersPay, creatorPaid: creatorPay, helioEarned: n.helioEarned + left });
+  const short_ = lendersPay + EPS < due.total ? ` (short ${fmt(due.total - lendersPay)})` : "";
+  return logTx(st, "record_takeout", signer, `${n.name} takeout ${fmt(amount)}: lenders ${fmt(lendersPay)}${short_}, creator ${fmt(creatorPay)}, HELIO ${fmt(left)}`, now);
+}
+
+export function recordTail(s: LedgerState, signer: Address, noteId: string, amount: number, now: number): LedgerState {
+  requireAdmin(s, signer, "record_tail");
+  const n = getNote(s, noteId);
+  if (n.stage < 5 || n.stage > 6) fail("WrongStage", `${n.name} starts its tail after takeout.`);
+  if (!(amount > 0)) fail("BadAmount", "Tail payment must be positive.");
+  const toYield = amount * TAIL_TO_YIELD;
+  const toHelio = amount * TAIL_TO_HELIO;
+  const toInstaller = amount * TAIL_TO_INSTALLER;
+  let st = credit(s, s.config.treasury, toHelio);
+  st = credit(st, st.config.installer, toInstaller);
+  const q = n.tailQuarters + 1;
+  st = put(st, {
+    ...n,
+    stage: q >= TAIL_QUARTERS ? 7 : 6,
+    tailQuarters: q,
+    tailReceived: n.tailReceived + amount,
+    accPerWeight: n.accPerWeight + (n.totalWeight > 0 ? toYield / n.totalWeight : 0),
+    helioEarned: n.helioEarned + toHelio,
+    installerEarned: n.installerEarned + toInstaller,
+  });
+  return logTx(st, "record_tail", signer, `${n.name} Q${q} tail ${fmt(amount)}: ${fmt(toYield)} Yield NFTs, ${fmt(toHelio)} HELIO, ${fmt(toInstaller)} installer`, now);
+}
+
+function getNft(s: LedgerState, id: string) {
+  return s.nfts.find((x) => x.id === id) ?? fail("NftNotFound", `Yield NFT ${id} does not exist.`);
+}
+function putNft(s: LedgerState, x: YieldNft): LedgerState {
+  return { ...s, nfts: s.nfts.map((y) => (y.id === x.id ? x : y)) };
+}
+
+export function claimNft(s: LedgerState, owner: Address, nftId: string, now: number): { state: LedgerState; amount: number } {
+  const nft = getNft(s, nftId);
+  if (nft.owner !== owner) fail("NotOwner", "You don't hold this Yield NFT.");
+  const n = getNote(s, nft.noteId);
+  const amount = nftClaimable(n, nft);
+  if (amount < 0.005) fail("NothingToClaim", "Nothing to claim yet.");
+  let st = putNft(s, { ...nft, claimed: nft.claimed + amount });
+  st = credit(st, owner, amount);
+  return { state: logTx(st, "claim", owner, `Claimed ${fmt(amount)} USDC from ${nft.id} (${n.name})`, now), amount };
+}
+
+export function listNft(s: LedgerState, owner: Address, nftId: string, price: number | null, now: number): LedgerState {
+  const nft = getNft(s, nftId);
+  if (nft.owner !== owner) fail("NotOwner", "You don't hold this Yield NFT.");
+  if (price !== null && !(price > 0)) fail("BadPrice", "Price must be positive.");
+  const st = putNft(s, { ...nft, listPrice: price });
+  return logTx(st, price === null ? "delist" : "list", owner, price === null ? `Delisted ${nft.id}` : `Listed ${nft.id} for ${fmt(price)} USDC`, now);
+}
+
+/** Unclaimed cash travels with the NFT. */
+export function buyNft(s: LedgerState, buyer: Address, nftId: string, now: number): LedgerState {
+  const nft = getNft(s, nftId);
+  if (nft.listPrice === null) fail("NotListed", "This Yield NFT isn't for sale.");
+  if (nft.owner === buyer) fail("OwnListing", "You already own this NFT.");
+  let st = debit(s, buyer, nft.listPrice!, "Buy Yield NFT");
+  st = credit(st, nft.owner, nft.listPrice!);
+  st = putNft(st, { ...nft, owner: buyer, listPrice: null });
+  return logTx(st, "buy_nft", buyer, `Bought ${nft.id} from ${short(nft.owner)} for ${fmt(nft.listPrice!)} USDC`, now);
+}
+
+export type { Stage };

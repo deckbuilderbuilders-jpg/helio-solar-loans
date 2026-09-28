@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "HELIO — Buy a panel. Burn it into a roof. Get paid by Ameren." },
-      { name: "description", content: "HELIO originates Illinois solar jobs funded by 400 W panel tokens. Burn panels into a roof and hold a Project Share of the Ameren rebate and Illinois Shines REC takeout." },
+      { name: "description", content: "HELIO runs 90–120 day USDC bridge notes on Illinois solar + storage roofs, repaid by Ameren rebates and Illinois Shines REC payments." },
       { name: "author", content: "HELIO" },
       { property: "og:title", content: "HELIO" },
       { property: "og:description", content: "Real Illinois roofs. Panels at $400. Takeout paid by Ameren and Illinois Shines." },

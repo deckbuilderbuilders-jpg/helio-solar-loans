@@ -1,17 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ProjectCard } from "@/components/helio/ProjectCard";
-import { Empty, SectionHead, Stat, usd } from "@/components/helio/ui";
-import { PANEL_PRICE_USDC } from "@/lib/helio/constants";
-import { projectStatus } from "@/lib/helio/ledger";
+import { NoteCard } from "@/components/helio/ProjectCard";
+import { SectionHead } from "@/components/helio/ui";
 import { useHelio } from "@/lib/helio/store";
 
 export const Route = createFileRoute("/projects")({
   head: () => ({
     meta: [
-      { title: "Originated projects — HELIO" },
-      { name: "description", content: "Every Ameren Illinois job HELIO has originated: location, kW, panels bonded, funding raised and contracted takeout." },
-      { property: "og:title", content: "Originated projects — HELIO" },
-      { property: "og:description", content: "Ameren Illinois solar jobs open for panel bonding." },
+      { title: "Open notes — HELIO" },
+      { name: "description", content: "Live reverse Dutch auctions and funded bridge notes on Ameren Illinois solar + storage roofs." },
+      { property: "og:title", content: "Open notes — HELIO" },
+      { property: "og:description", content: "Live APR auctions on Illinois solar roofs, capped at 25%." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,34 +18,20 @@ export const Route = createFileRoute("/projects")({
 });
 
 function Projects() {
-  const { state } = useHelio();
-  const bonding = state.projects.filter((p) => projectStatus(p) === "Bonding");
-  const raised = state.projects.reduce((s, p) => s + p.panelsBonded * PANEL_PRICE_USDC, 0);
-  const takeout = state.projects.reduce((s, p) => s + p.takeout.takeout, 0);
-
+  const { state, now } = useHelio();
+  const live = state.notes.filter((n) => n.stage === 1 && !n.failed);
+  const rest = state.notes.filter((n) => !(n.stage === 1 && !n.failed));
   return (
-    <div className="space-y-8">
-      <SectionHead
-        eyebrow="Origination book"
-        title="Illinois jobs underwritten by HELIO"
-        right={
-          <div className="flex gap-6">
-            <Stat label="Open for bonding" value={bonding.length} sub={`${state.projects.length} total jobs`} />
-            <Stat label="Raised" value={usd(raised)} sub="panels burned × $400" />
-            <Stat label="Contracted takeout" value={usd(takeout)} sub="rebate + first REC" accent />
-          </div>
-        }
-      />
-
-      {state.projects.length === 0 ? (
-        <Empty title="No jobs originated yet" body="Load the originator admin wallet and publish a project from the Originate page." />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {state.projects.map((p) => (
-            <ProjectCard key={p.id} p={p} />
-          ))}
-        </div>
-      )}
+    <div className="space-y-10">
+      <section>
+        <SectionHead eyebrow="Reverse Dutch auction" title="Live auctions" right={<span className="text-xs text-muted-foreground">APR climbs 12% → 25% over 72h until filled</span>} />
+        <div className="grid gap-4 md:grid-cols-2">{live.map((n) => <NoteCard key={n.id} n={n} now={now} />)}</div>
+        {live.length === 0 && <p className="text-sm text-muted-foreground">No auctions open. Create a roof.</p>}
+      </section>
+      <section>
+        <SectionHead eyebrow="Locked + settled" title="Funded notes" />
+        <div className="grid gap-4 md:grid-cols-2">{rest.map((n) => <NoteCard key={n.id} n={n} now={now} />)}</div>
+      </section>
     </div>
   );
 }

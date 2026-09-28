@@ -6,18 +6,17 @@ import {
   CAPACITY_FACTOR,
   GATES,
   GROUP_A_DG_REC_PRICES,
-  ORIGINATOR_TAIL_BPS,
-  PANEL_PRICE_USDC,
-  PANEL_WATTS_DC,
 } from "@/lib/helio/constants";
+import { APR_CAP, APR_FLOOR, AUCTION_HOURS } from "@/lib/helio/auction";
+import { APPLICATION_FEE_PER_KW, CREATOR_CASH_MULTIPLE, CREATOR_YIELD_MULTIPLE, TAIL_PROTOCOL_FEE, TAIL_TO_HELIO, TAIL_TO_INSTALLER, TAIL_TO_YIELD } from "@/lib/helio/economics";
 
 export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
       { title: "Protocol docs — HELIO" },
-      { name: "description", content: "How HELIO panels, Project Shares and takeout work, plus the Illinois Shines 2026–27 and Ameren rebate sources behind every number." },
+      { name: "description", content: "How HELIO bridge notes, the APR auction, takeout and Yield NFTs work, plus the Illinois Shines 2026–27 and Ameren rebate sources behind every number." },
       { property: "og:title", content: "Protocol docs — HELIO" },
-      { property: "og:description", content: "Panels, Project Shares, takeout math and Illinois sources." },
+      { property: "og:description", content: "Bridge notes, auction, takeout and Yield NFTs." },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -32,37 +31,41 @@ function Docs() {
         <div className="hazard h-1.5 w-24" />
         <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Protocol</h1>
         <p className="text-muted-foreground">
-          HELIO is an originator, not a lender. We underwrite Ameren Illinois solar jobs, publish them at a funding target of $1.00 per watt-DC, and let
-          panel holders fund the roof they choose.
+          HELIO runs fixed-term USDC bridge notes on Illinois solar + storage roofs. Lenders fund the build; Ameren rebates and the first Illinois Shines REC
+          payment repay them in 90–120 days. The customer signs a PPA, owns the equipment, and pays about half their old bill.
         </p>
       </div>
 
-      <Block title="Panels">
+      <Block title="Creating a roof">
         <p>
-          One Helio Panel represents {PANEL_WATTS_DC} W DC of underwriting capacity and mints for ${PANEL_PRICE_USDC} USDC. Panels are fungible and
-          transferable until they are bonded.
+          Anyone can open a note by paying the ${APPLICATION_FEE_PER_KW}/kW Illinois Shines application fee. It is the only money at risk: if the auction never
+          fills, the fee is lost and lenders are refunded in full. If it fills, the creator gets {CREATOR_CASH_MULTIPLE}x the fee in cash at takeout and a
+          Yield NFT weighted at {CREATOR_YIELD_MULTIPLE}x the fee.
         </p>
       </Block>
 
-      <Block title="Bonding and Project Shares">
+      <Block title="Reverse Dutch auction">
         <p>
-          Burning panels into a project is permanent. A wallet's Project Share equals panels burned ÷ panels required, where panels required = ceil(kW-DC ×
-          1000 ÷ {PANEL_WATTS_DC}). When bonded panels reach the requirement, the job is Funded and construction proceeds.
+          APR opens at {APR_FLOOR * 100}% and climbs linearly to a {APR_CAP * 100}% cap over {AUCTION_HOURS} hours. The dollar that fills the note sets the
+          clearing APR for every lender. Before it fills, lenders can withdraw for a 2.5% fee: 1.5% to lenders who stay, 1.0% to the protocol.
         </p>
       </Block>
 
-      <Block title="Takeout">
-        <p>Takeout is the contracted cash a funded job returns to shares:</p>
+      <Block title="Build and takeout">
         <pre className="overflow-x-auto rounded-sm bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
-{`takeout = ameren_solar_rebate
-        + ameren_battery_rebate
-        + first_rec_payment
-        − 5% rec_contract_collateral
-        − 3% protocol_haircut_reserve`}
+{`note     = kW_dc × $1.15/W  +  kWh × ($225 + $25)
+takeout  = kW_dc × $300  +  kWh × $300  +  first 50% REC ($0.845/W)
+waterfall: lenders principal + interest → creator 3x cash → HELIO`}
         </pre>
+        <p>Installers earn $0.33/W at build, plus $0.02/W when the install is finished in one day.</p>
+      </Block>
+
+      <Block title="Yield NFTs and the tail">
         <p>
-          The remaining 6-year REC tail pays over 24 quarters and splits {100 - ORIGINATOR_TAIL_BPS / 100}% to Project Shares and{" "}
-          {ORIGINATOR_TAIL_BPS / 100}% to HELIO as the originator fee.
+          When a note fills, each lender gets a Yield NFT weighted by principal. The customer PPA and the remaining 50% REC contract (24 quarters) split{" "}
+          {TAIL_TO_YIELD * 100}% to Yield NFTs and a {TAIL_PROTOCOL_FEE * 100}% protocol fee, of which 20% goes to the installer
+          ({(TAIL_TO_INSTALLER * 100).toFixed(0)}% of tail) and {(TAIL_TO_HELIO * 100).toFixed(0)}% to HELIO. Yield NFTs trade on the market; unclaimed cash
+          moves with the NFT.
         </p>
       </Block>
 
@@ -102,7 +105,7 @@ function Docs() {
         </p>
       </Block>
 
-      <Block title="Milestones">
+      <Block title="Stages">
         <ol className="space-y-1.5">
           {GATES.map((g) => (
             <li key={g.id} className="flex gap-3">
@@ -125,7 +128,7 @@ function Docs() {
       <Block title="Exclusions">
         <ul className="space-y-1.5">
           <li>· No mid-project liquidations and no price oracles — takeout is a tariffed rebate plus a utility REC invoice.</li>
-          <li>· Panels are a funding unit, not a yield instrument; the REC tail is disclosed but paid over six years.</li>
+          <li>· Taking the Ameren rebate moves the customer to supply + transmission-only net metering; storage is what gets the bill to 50%.</li>
           <li>· Devnet demonstration figures. Nothing here is an offer of securities or a guarantee of program payments.</li>
         </ul>
       </Block>

@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Gate, ProjectStatus } from "@/lib/helio/types";
-import { GATES } from "@/lib/helio/constants";
+import type { NoteStatus, Stage } from "@/lib/helio/types";
+import { STAGES } from "@/lib/helio/constants";
 
 export const usd = (n: number, digits = 0) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -24,7 +24,7 @@ export function Stat({ label, value, sub, className, accent }: { label: string; 
 
 export function Row({ label, value, sub, strong, muted }: { label: ReactNode; value: ReactNode; sub?: ReactNode; strong?: boolean; muted?: boolean }) {
   return (
-    <div className={cn("flex items-baseline justify-between gap-4 py-1.5", strong && "border-t border-border pt-3 mt-1")}>
+    <div className={cn("flex items-baseline justify-between gap-4 py-1.5", strong && "mt-1 border-t border-border pt-3")}>
       <div className="min-w-0">
         <div className={cn("text-sm", muted ? "text-muted-foreground" : "text-foreground", strong && "font-medium")}>{label}</div>
         {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
@@ -34,25 +34,28 @@ export function Row({ label, value, sub, strong, muted }: { label: ReactNode; va
   );
 }
 
-const statusStyles: Record<ProjectStatus, string> = {
-  Bonding: "bg-volt/15 text-volt border-volt/40",
+const statusStyles: Record<NoteStatus, string> = {
+  Auction: "bg-volt/15 text-volt border-volt/40",
   Funded: "bg-warning/15 text-warning border-warning/40",
-  Energized: "bg-warning/15 text-warning border-warning/40",
-  Paying: "bg-positive/15 text-positive border-positive/40",
+  Building: "bg-warning/15 text-warning border-warning/40",
+  "Awaiting takeout": "bg-warning/15 text-warning border-warning/40",
+  Repaid: "bg-positive/15 text-positive border-positive/40",
+  Streaming: "bg-positive/15 text-positive border-positive/40",
   Complete: "bg-muted text-muted-foreground border-border",
+  Failed: "bg-destructive/15 text-destructive border-destructive/40",
 };
 
-export function Pill({ state, className }: { state: ProjectStatus; className?: string }) {
+export function Pill({ state, className }: { state: NoteStatus; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider", statusStyles[state], className)}>
-      {(state === "Bonding" || state === "Paying") && <span className="size-1.5 rounded-full bg-current animate-pulse-volt" />}
+      {(state === "Auction" || state === "Streaming") && <span className="size-1.5 animate-pulse-volt rounded-full bg-current" />}
       {state}
     </span>
   );
 }
 
-export function GateChip({ gate, className }: { gate: Gate; className?: string }) {
-  const g = GATES[gate];
+export function StageChip({ stage, className }: { stage: Stage; className?: string }) {
+  const g = STAGES[stage];
   return (
     <span title={g.title} className={cn("inline-flex items-center rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-foreground", className)}>
       {g.code}
@@ -61,7 +64,7 @@ export function GateChip({ gate, className }: { gate: Gate; className?: string }
 }
 
 export function Progress({ value, total, className }: { value: number; total: number; className?: string }) {
-  const p = Math.min(100, (value / total) * 100);
+  const p = total > 0 ? Math.min(100, (value / total) * 100) : 0;
   return (
     <div className={cn("h-1.5 w-full overflow-hidden rounded-sm bg-surface-2", className)}>
       <div className="h-full bg-volt transition-[width] duration-500" style={{ width: `${p}%` }} />
@@ -92,7 +95,7 @@ export function SectionHead({ eyebrow, title, right }: { eyebrow?: string; title
   );
 }
 
-export function ProjectLink({ id, children }: { id: string; children: ReactNode }) {
+export function NoteLink({ id, children }: { id: string; children: ReactNode }) {
   return (
     <Link to="/project/$id" params={{ id }} className="underline-offset-4 hover:text-volt hover:underline">
       {children}

@@ -1,25 +1,19 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Flame, HandCoins, ShoppingCart, Sun } from "lucide-react";
-import { UnderwritingCalculator } from "@/components/helio/Calculator";
-import { ProjectCard } from "@/components/helio/ProjectCard";
-import { SourcesPopover } from "@/components/helio/Sources";
+import { ArrowRight, Coins, Gavel, Hammer, Sprout } from "lucide-react";
+import { EconomicsCalculator } from "@/components/helio/Economics";
+import { NoteCard } from "@/components/helio/ProjectCard";
 import { SectionHead, Stat, usd } from "@/components/helio/ui";
 import { Button } from "@/components/ui/button";
-import { PANEL_PRICE_USDC, PANEL_WATTS_DC } from "@/lib/helio/constants";
-import { distributedToShares } from "@/lib/helio/ledger";
+import { econOf } from "@/lib/helio/ledger";
 import { useHelio } from "@/lib/helio/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "HELIO — Buy a panel. Burn it into a roof. Get paid by Ameren." },
-      {
-        name: "description",
-        content:
-          "HELIO originates Illinois solar jobs and funds them with 400 W panel tokens. Burn panels into a roof, hold a Project Share, receive the Ameren rebate and Illinois Shines REC takeout in USDC.",
-      },
-      { property: "og:title", content: "HELIO — Buy a panel. Burn it into a roof. Get paid by Ameren." },
-      { property: "og:description", content: "400 W panels at $400. Real Illinois roofs. Takeout paid by Ameren and Illinois Shines." },
+      { title: "HELIO — Bridge Illinois solar roofs for 90 days" },
+      { name: "description", content: "Fund fixed-term USDC bridge notes against Ameren rebates and Illinois Shines REC payments. APR climbs 12% to 25% until each roof fills, then Yield NFTs stream the PPA and REC tail." },
+      { property: "og:title", content: "HELIO — Bridge Illinois solar roofs for 90 days" },
+      { property: "og:description", content: "Reverse Dutch auction bridge notes, repaid by Ameren and Illinois Shines. Yield NFTs stream the tail." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -28,18 +22,20 @@ export const Route = createFileRoute("/")({
 });
 
 const STEPS = [
-  { icon: ShoppingCart, title: "Buy panels", body: `One Helio Panel = ${PANEL_WATTS_DC} W DC of underwriting capacity for $${PANEL_PRICE_USDC} USDC.` },
-  { icon: Sun, title: "We originate", body: "HELIO underwrites real Ameren jobs at $1.00/W-DC and publishes the funding target." },
-  { icon: Flame, title: "Burn into a roof", body: "Burning is permanent. You receive a Project Share equal to your panels ÷ panels required." },
-  { icon: HandCoins, title: "Get paid", body: "Ameren rebate and the first Illinois Shines REC payment land in USDC and pay shares pro-rata." },
+  { icon: Sprout, title: "Create", body: "Anyone opens a roof by paying the $20/kW application fee. It's the only money at risk. Pays back 3x cash + 2x Yield NFT." },
+  { icon: Gavel, title: "Auction", body: "APR starts at 12% and climbs to a 25% cap until the build is funded. Exit before it fills for a 2.5% fee." },
+  { icon: Hammer, title: "Build", body: "Installer earns $0.33/W, plus $0.02/W for a one-day install. Customer gets solar + storage and a 50% smaller bill." },
+  { icon: Coins, title: "Repay + tail", body: "Day 90–120: Ameren rebates and the first REC check repay principal + interest. Then Yield NFTs stream 65% of PPA + REC tail." },
 ];
 
 function Landing() {
-  const { state, ready } = useHelio();
-  const projects = state.projects;
-  const featured = projects.find((p) => p.panelsBonded > 0 && p.panelsBonded < p.panelsRequired) ?? projects[0];
-  const kwOriginated = projects.reduce((s, p) => s + p.specs.kwDc, 0);
-  const takeoutPaid = projects.reduce((s, p) => s + distributedToShares(p), 0);
+  const { state, ready, now } = useHelio();
+  const notes = state.notes;
+  const live = notes.filter((n) => n.stage === 1 && !n.failed);
+  const featured = live[0] ?? notes[0];
+  const kw = notes.reduce((s, n) => s + n.kwDc, 0);
+  const repaid = notes.reduce((s, n) => s + n.lendersRepaid, 0);
+  const tail = notes.reduce((s, n) => s + n.tailReceived, 0);
 
   return (
     <div className="space-y-16">
@@ -47,45 +43,39 @@ function Landing() {
         <div className="space-y-6">
           <div className="hazard h-1.5 w-28" />
           <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-            Buy a panel.
+            Illinois pays for the roof.
             <br />
-            Burn it into a roof.
-            <br />
-            <span className="text-volt">Get paid by Ameren.</span>
+            <span className="text-volt">You bridge the 90 days.</span>
           </h1>
           <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-            HELIO originates Illinois solar jobs and funds them with 400-watt panel tokens at ${PANEL_PRICE_USDC} each. Burn your panels into a
-            specific roof and hold a Project Share of that job's Ameren rebate and Illinois Shines REC contract.
+            Lend USDC into a single roof's build. Ameren and Illinois Shines repay you in 90–120 days. Your Yield NFT keeps paying from the customer PPA and the
+            REC tail for six years.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="volt" size="lg">
-              <Link to="/shop">Buy panels <ArrowRight className="size-4" /></Link>
+              <Link to="/projects">Open auctions <ArrowRight className="size-4" /></Link>
             </Button>
             <Button asChild variant="secondary" size="lg">
-              <Link to="/projects">See originated jobs</Link>
+              <Link to="/originate">Create a roof</Link>
             </Button>
           </div>
           <div className="grid grid-cols-2 gap-6 border-t border-border pt-6 md:grid-cols-4">
-            <Stat label="Panels minted" value={ready ? state.panelsMinted : "—"} sub={`${state.shopStock} left in mint`} />
-            <Stat label="Panels bonded" value={ready ? state.panelsBurned : "—"} sub="burned permanently" />
-            <Stat label="kW-DC originated" value={ready ? kwOriginated.toFixed(1) : "—"} sub={`${projects.length} Ameren jobs`} />
-            <Stat label="Takeout paid" value={ready ? usd(takeoutPaid) : "—"} sub="to Project Shares" accent />
+            <Stat label="Live auctions" value={ready ? live.length : "—"} sub={`${notes.length} notes total`} />
+            <Stat label="kW-DC created" value={ready ? kw.toFixed(0) : "—"} sub="solar + storage" />
+            <Stat label="Lenders repaid" value={ready ? usd(repaid) : "—"} sub="principal + interest" />
+            <Stat label="Tail paid" value={ready ? usd(tail) : "—"} sub="PPA + REC tail" accent />
           </div>
         </div>
-
         {featured && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="eyebrow">Featured project</div>
-              <SourcesPopover />
-            </div>
-            <ProjectCard p={featured} />
+            <div className="eyebrow">Featured note · {usd(econOf(featured).buildCost)}</div>
+            <NoteCard n={featured} now={now} />
           </div>
         )}
       </section>
 
       <section>
-        <SectionHead eyebrow="How it works" title="Four steps, no loans" />
+        <SectionHead eyebrow="How it works" title="One roof, one note" />
         <div className="grid gap-4 md:grid-cols-4">
           {STEPS.map((s, i) => (
             <div key={s.title} className="panel space-y-3 p-5">
@@ -103,21 +93,8 @@ function Landing() {
       </section>
 
       <section>
-        <SectionHead
-          eyebrow="Underwriting"
-          title="Project underwriting"
-          right={<span className="max-w-sm text-xs text-muted-foreground">Every figure derives from the Illinois Shines 2026–27 Group A price table and the Ameren $300/kW-DC rebate.</span>}
-        />
-        <UnderwritingCalculator />
-      </section>
-
-      <section>
-        <SectionHead eyebrow="Open jobs" title="Originated this cycle" right={<Button asChild variant="secondary" size="sm"><Link to="/projects">All projects</Link></Button>} />
-        <div className="grid gap-4 md:grid-cols-2">
-          {projects.slice(0, 2).map((p) => (
-            <ProjectCard key={p.id} p={p} />
-          ))}
-        </div>
+        <SectionHead eyebrow="Underwriting" title="Price a roof" right={<span className="max-w-sm text-xs text-muted-foreground">$1.15/W solar, $250/kWh storage, 6.4 kWh per kW. Repaid by $300/kW + $300/kWh Ameren rebates and the first 50% REC payment.</span>} />
+        <EconomicsCalculator />
       </section>
     </div>
   );

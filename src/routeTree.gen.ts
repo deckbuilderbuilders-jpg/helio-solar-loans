@@ -11,11 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as MarketRouteImport } from './routes/market'
 import { Route as OracleRouteImport } from './routes/oracle'
 import { Route as OriginateRouteImport } from './routes/originate'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ShopRouteImport } from './routes/shop'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
 
@@ -27,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const DocsRoute = DocsRouteImport.update({
   id: '/docs',
   path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketRoute = MarketRouteImport.update({
+  id: '/market',
+  path: '/market',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OracleRoute = OracleRouteImport.update({
@@ -49,11 +54,6 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShopRoute = ShopRouteImport.update({
-  id: '/shop',
-  path: '/shop',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -68,22 +68,22 @@ const ProjectIdRoute = ProjectIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
+  '/market': typeof MarketRoute
   '/oracle': typeof OracleRoute
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
+  '/market': typeof MarketRoute
   '/oracle': typeof OracleRoute
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
@@ -91,11 +91,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/docs': typeof DocsRoute
+  '/market': typeof MarketRoute
   '/oracle': typeof OracleRoute
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
@@ -104,33 +104,33 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/docs'
+    | '/market'
     | '/oracle'
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/docs'
+    | '/market'
     | '/oracle'
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   id:
     | '__root__'
     | '/'
     | '/docs'
+    | '/market'
     | '/oracle'
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   fileRoutesById: FileRoutesById
@@ -138,11 +138,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DocsRoute: typeof DocsRoute
+  MarketRoute: typeof MarketRoute
   OracleRoute: typeof OracleRoute
   OriginateRoute: typeof OriginateRoute
   PortfolioRoute: typeof PortfolioRoute
   ProjectsRoute: typeof ProjectsRoute
-  ShopRoute: typeof ShopRoute
   WelcomeRoute: typeof WelcomeRoute
   ProjectIdRoute: typeof ProjectIdRoute
 }
@@ -161,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/docs'
       fullPath: '/docs'
       preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/market': {
+      id: '/market'
+      path: '/market'
+      fullPath: '/market'
+      preLoaderRoute: typeof MarketRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/oracle': {
@@ -191,13 +198,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shop': {
-      id: '/shop'
-      path: '/shop'
-      fullPath: '/shop'
-      preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/welcome': {
       id: '/welcome'
       path: '/welcome'
@@ -218,11 +218,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DocsRoute: DocsRoute,
+  MarketRoute: MarketRoute,
   OracleRoute: OracleRoute,
   OriginateRoute: OriginateRoute,
   PortfolioRoute: PortfolioRoute,
   ProjectsRoute: ProjectsRoute,
-  ShopRoute: ShopRoute,
   WelcomeRoute: WelcomeRoute,
   ProjectIdRoute: ProjectIdRoute,
 }
