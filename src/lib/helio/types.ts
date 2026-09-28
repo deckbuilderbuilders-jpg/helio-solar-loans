@@ -44,6 +44,10 @@ export interface HelioNote {
   takeoutReceived: number;
   lendersRepaid: number;
   creatorPaid: number;
+  /** Creator 3x cash not covered at takeout; paid from the first tail quarters. */
+  creatorOwed?: number;
+  /** Illinois Shines 5% collateral released to Yield NFTs. */
+  collateralReleased?: boolean;
   /** Long tail. */
   tailQuarters: number;
   tailReceived: number;

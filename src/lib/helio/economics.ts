@@ -83,6 +83,9 @@ export const TAIL_TO_HELIO = TAIL_PROTOCOL_FEE - TAIL_TO_INSTALLER; // 0.28
 /** REC tail schedule. */
 export const TAIL_QUARTERS = 24;
 
+/** Illinois Shines holds 5% of the full 15-year REC contract as collateral, off the first check. */
+export const REC_COLLATERAL_PCT = 0.05;
+
 /* -------------------------------- Modelling ------------------------------- */
 
 export interface ProjectEconomics {
@@ -100,6 +103,13 @@ export interface ProjectEconomics {
   amerenSolarRebate: number;
   amerenBatteryRebate: number;
   firstRecPayment: number;
+  /** Rebates + first REC before the collateral hold. */
+  grossTakeout: number;
+  /** Full 15-year REC contract value. */
+  recContractTotal: number;
+  /** 5% of the contract, held by Illinois Shines; released later to Yield NFTs. */
+  recCollateral: number;
+  /** Cash that actually lands at day 90–120 (gross − collateral). */
   takeout: number;
   takeoutSurplus: number;
   /** Creator */
@@ -132,7 +142,10 @@ export function projectEconomics(kwDc: number, batteryKwh = batteryForSize(kwDc)
   const amerenSolarRebate = wattsDc * AMEREN_SOLAR_REBATE_PER_W_DC;
   const amerenBatteryRebate = batteryKwh * BATTERY_REBATE_PER_KWH;
   const firstRecPayment = wattsDc * FIRST_REC_PER_W_DC;
-  const takeout = amerenSolarRebate + amerenBatteryRebate + firstRecPayment;
+  const grossTakeout = amerenSolarRebate + amerenBatteryRebate + firstRecPayment;
+  const recContractTotal = wattsDc * (FIRST_REC_PER_W_DC + REC_TAIL_PER_W_DC);
+  const recCollateral = recContractTotal * REC_COLLATERAL_PCT;
+  const takeout = grossTakeout - recCollateral;
 
   const creatorCashBack = applicationFee * CREATOR_CASH_MULTIPLE;
   const creatorYieldCredit = applicationFee * CREATOR_YIELD_MULTIPLE;
@@ -157,6 +170,9 @@ export function projectEconomics(kwDc: number, batteryKwh = batteryForSize(kwDc)
     amerenSolarRebate,
     amerenBatteryRebate,
     firstRecPayment,
+    grossTakeout,
+    recContractTotal,
+    recCollateral,
     takeout,
     takeoutSurplus: takeout - buildCost,
     creatorCashBack,
