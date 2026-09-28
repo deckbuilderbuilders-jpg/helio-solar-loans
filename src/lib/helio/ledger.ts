@@ -12,7 +12,7 @@
  *   record_tail     admin: one quarter of REC tail → 65% NFTs / 28% HELIO / 7% installer
  *   claim / list / delist / buy  Yield NFT cash and secondary market
  */
-import { APR_CAP, auctionApr, LOCKUP_MAX_DAYS, LOCKUP_MIN_DAYS, noteInterest } from "./auction";
+import { APR_CAP, auctionApr, auctionWeight, LOCKUP_MAX_DAYS, LOCKUP_MIN_DAYS, noteInterest } from "./auction";
 import {
   APPLICATION_FEE_PER_KW,
   CREATOR_CASH_MULTIPLE,
@@ -86,6 +86,26 @@ export function liveApr(n: HelioNote, now: number): number {
   return auctionApr((now - n.openedAt) / 3600);
 }
 
+/** Tail multiplier a new deposit would get right now (1.8x → 1x). */
+export function liveWeight(n: HelioNote, now: number): number {
+  if (n.clearingApr !== null) return 1;
+  return auctionWeight((now - n.openedAt) / 3600);
+}
+
+/** A lender's blended APR across their deposits. */
+export function lenderApr(n: HelioNote, who: Address): number {
+  const p = n.deposits[who] ?? 0;
+  const a = n.aprDollars?.[who];
+  return p > EPS && a !== undefined ? a / p : n.clearingApr ?? APR_CAP;
+}
+
+/** A lender's blended tail multiplier. */
+export function lenderWeight(n: HelioNote, who: Address): number {
+  const p = n.deposits[who] ?? 0;
+  const w = n.weightDollars?.[who];
+  return p > EPS && w !== undefined ? w / p : 1;
+}
+
 export function noteStatus(n: HelioNote): NoteStatus {
   if (n.failed) return "Failed";
   return (["Auction", "Auction", "Funded", "Building", "Awaiting takeout", "Repaid", "Streaming", "Complete"] as const)[n.stage];
@@ -97,10 +117,11 @@ export function lockupDays(n: HelioNote, now: number): number {
   return Math.min(LOCKUP_MAX_DAYS, Math.max(LOCKUP_MIN_DAYS, Math.round((now - n.fundedAt) / D)));
 }
 
-/** What the note owes all lenders at settlement. */
+/** What the note owes all lenders at settlement (each at their own locked APR). */
 export function lenderDue(n: HelioNote, now: number) {
   const principal = raised(n);
-  const interest = noteInterest(principal, n.clearingApr ?? APR_CAP, lockupDays(n, now));
+  const days = lockupDays(n, now);
+  const interest = Object.entries(n.deposits).reduce((s, [who, v]) => s + noteInterest(v, lenderApr(n, who), days), 0);
   return { principal, interest, total: principal + interest };
 }
 
