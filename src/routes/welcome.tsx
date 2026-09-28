@@ -33,7 +33,6 @@ import {
   TAIL_TO_HELIO,
   TAIL_TO_INSTALLER,
   TAIL_TO_YIELD,
-  batteryForSize,
   projectEconomics,
   yieldNftAnnualRate,
 } from "@/lib/helio/economics";
