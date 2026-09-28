@@ -209,9 +209,15 @@ export function deposit(s: LedgerState, a: { lender: Address; noteId: string; am
   const room = remaining(n);
   const amt = Math.min(a.amount, room);
   let st = debit(s, a.lender, amt, "Deposit");
-  let note: HelioNote = { ...n, deposits: { ...n.deposits, [a.lender]: (n.deposits[a.lender] ?? 0) + amt } };
   const apr = liveApr(n, a.now);
-  let detail = `Deposited ${fmt(amt)} USDC into ${n.name} at ${(apr * 100).toFixed(2)}% live APR`;
+  const mult = liveWeight(n, a.now);
+  let note: HelioNote = {
+    ...n,
+    deposits: { ...n.deposits, [a.lender]: (n.deposits[a.lender] ?? 0) + amt },
+    aprDollars: { ...(n.aprDollars ?? {}), [a.lender]: (n.aprDollars?.[a.lender] ?? 0) + amt * apr },
+    weightDollars: { ...(n.weightDollars ?? {}), [a.lender]: (n.weightDollars?.[a.lender] ?? 0) + amt * mult },
+  };
+  let detail = `Deposited ${fmt(amt)} USDC into ${n.name} at ${(apr * 100).toFixed(2)}% APR, ${mult.toFixed(2)}x tail weight`;
   if (room - amt < EPS) {
     note = { ...note, stage: 2, clearingApr: apr, fundedAt: a.now };
     detail += ` → filled, clearing APR ${(apr * 100).toFixed(2)}%`;
@@ -225,9 +231,10 @@ export function deposit(s: LedgerState, a: { lender: Address; noteId: string; am
 function mintNfts(s: LedgerState, n: HelioNote): LedgerState {
   let st = s;
   const minted: YieldNft[] = [];
+  // NFT weight = principal × the lender's blended early-funder multiplier (1.8x → 1x).
   const entries: Array<[Address, number, YieldNft["kind"]]> = Object.entries(n.deposits)
     .filter(([, v]) => v > EPS)
-    .map(([k, v]) => [k, v, "lender"]);
+    .map(([k, v]) => [k, v * lenderWeight(n, k), "lender"]);
   entries.push([n.creator, n.applicationFee * CREATOR_YIELD_MULTIPLE, "creator"]);
   for (const [owner, weight, kind] of entries) {
     const [id, s1] = nextId(st, "ynft");
@@ -248,7 +255,15 @@ export function withdraw(s: LedgerState, a: { lender: Address; noteId: string; a
   const toStayers = amt * PREBOND_EXIT_TO_STAYERS;
   const toProtocol = amt * PREBOND_EXIT_TO_PROTOCOL;
   const deposits = { ...n.deposits, [a.lender]: held - amt };
-  if ((deposits[a.lender] ?? 0) < EPS) delete deposits[a.lender];
+  // Withdrawals shrink APR and weight pro-rata, keeping the lender's blended rate.
+  const keep = held > EPS ? (held - amt) / held : 0;
+  const aprDollars = { ...(n.aprDollars ?? {}), [a.lender]: (n.aprDollars?.[a.lender] ?? held * liveApr(n, a.now)) * keep };
+  const weightDollars = { ...(n.weightDollars ?? {}), [a.lender]: (n.weightDollars?.[a.lender] ?? held) * keep };
+  if ((deposits[a.lender] ?? 0) < EPS) {
+    delete deposits[a.lender];
+    delete aprDollars[a.lender];
+    delete weightDollars[a.lender];
+  }
   const stayers = Object.entries(deposits);
   const stayTotal = stayers.reduce((x, [, v]) => x + v, 0);
   const exitBonus = { ...n.exitBonus };
@@ -306,7 +321,7 @@ export function recordTakeout(s: LedgerState, signer: Address, noteId: string, a
   let st = s;
   const ratio = due.total > 0 ? lendersPay / due.total : 0;
   for (const [who, v] of Object.entries(n.deposits)) {
-    const owed = v + noteInterest(v, n.clearingApr ?? 0, lockupDays(n, now));
+    const owed = v + noteInterest(v, lenderApr(n, who), lockupDays(n, now));
     st = credit(st, who, owed * ratio + (n.exitBonus[who] ?? 0));
   }
   st = credit(st, n.creator, creatorPay);
