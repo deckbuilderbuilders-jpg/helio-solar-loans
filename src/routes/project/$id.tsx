@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { APR_CAP, AUCTION_HOURS } from "@/lib/helio/auction";
 import { prebondWithdrawal } from "@/lib/helio/economics";
-import { econOf, lenderDue, liveApr, lockupDays, nftClaimable, noteStatus, raised, remaining, short } from "@/lib/helio/ledger";
+import { econOf, lenderDue, liveApr, liveWeight, lockupDays, nftClaimable, noteStatus, raised, remaining, short } from "@/lib/helio/ledger";
 import { useHelio } from "@/lib/helio/store";
 
 export const Route = createFileRoute("/project/$id")({
@@ -58,7 +58,7 @@ function NoteDetail() {
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="panel space-y-5 p-5">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Stat label={open ? "Live APR" : "Clearing APR"} value={pct(apr, 2)} sub={open ? `cap ${pct(APR_CAP, 0)} · ${hoursLeft.toFixed(0)}h to cap` : "locked"} accent />
+            <Stat label={open ? "Live APR" : "Clearing APR"} value={pct(apr, 2)} sub={open ? `cap ${pct(APR_CAP, 0)} · tail weight ${liveWeight(n, now).toFixed(2)}x` : "top of book"} accent />
             <Stat label="Note size" value={usd(e.buildCost)} sub={`${n.kwDc} kW + ${n.batteryKwh} kWh`} />
             <Stat label="Takeout" value={usd(e.takeout)} sub={`${e.takeoutCoverage.toFixed(2)}x build`} />
             <Stat label="Lockup" value={`${lockupDays(n, now)}d`} sub={n.fundedAt ? `funded ${dateShort(n.fundedAt)}` : "90–120 days"} />
@@ -88,7 +88,7 @@ function NoteDetail() {
             <>
               <Input type="number" min={1} value={amt} onChange={(ev) => setAmt(ev.target.value)} aria-label="Amount in USDC" />
               <div className="text-xs text-muted-foreground">
-                Wallet {usdc(balance, 0)} · in note {usdc(mine, 0)} · at {pct(apr, 2)} for 90 days ≈ {usd(Math.min(amount, remaining(n)) * apr * (90 / 365), 2)} interest if it cleared now
+                Wallet {usdc(balance, 0)} · in note {usdc(mine, 0)} · at {pct(apr, 2)} + {liveWeight(n, now).toFixed(2)}x tail weight · 90 days ≈ {usd(Math.min(amount, remaining(n)) * apr * (90 / 365), 2)} interest if it cleared now
               </div>
               <div className="flex gap-2">
                 <Button variant="volt" className="flex-1" disabled={!wallet || amount <= 0} onClick={() => deposit(n.id, amount)}>Deposit</Button>
