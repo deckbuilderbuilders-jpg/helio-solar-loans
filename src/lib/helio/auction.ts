@@ -48,6 +48,14 @@ export function auctionApr(hoursElapsed: number): number {
   return APR_FLOOR + (APR_CAP - APR_FLOOR) * p;
 }
 
+/** Early-funder tail weight: 1.8x at open, linearly down to 1x at the APR cap. */
+export const WEIGHT_START = 1.8;
+export const WEIGHT_END = 1;
+export function auctionWeight(hoursElapsed: number): number {
+  const p = clamp(hoursElapsed / AUCTION_HOURS, 0, 1);
+  return WEIGHT_START - (WEIGHT_START - WEIGHT_END) * p;
+}
+
 /** Simple (non-compounding) interest on a note held to takeout. */
 export function noteInterest(principal: number, apr: number, days: number): number {
   return principal * apr * (days / 365);

@@ -8,7 +8,7 @@ import * as L from "./ledger";
 import { DEMO, seedState } from "./seed";
 import type { Address, HelioNote, LedgerState } from "./types";
 
-const STORAGE_KEY = "helio:devnet-sim:v3-notes";
+const STORAGE_KEY = "helio:devnet-sim:v4-weights";
 const WALLET_KEY = "helio:wallet:v3";
 
 export type Role = "investor" | "admin" | "installer";

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { APR_CAP } from "@/lib/helio/auction";
-import { econOf, liveApr, noteStatus, raised } from "@/lib/helio/ledger";
+import { econOf, liveApr, liveWeight, noteStatus, raised } from "@/lib/helio/ledger";
 import type { HelioNote } from "@/lib/helio/types";
 import { EconomicsLine } from "./Economics";
 import { Pill, Progress, Stat, StageChip, pct, usd } from "./ui";
@@ -25,7 +25,7 @@ export function NoteCard({ n, now }: { n: HelioNote; now: number }) {
       </div>
       <div className="grid grid-cols-3 gap-3">
         <Stat label="System" value={`${n.kwDc} kW`} sub={`+ ${n.batteryKwh} kWh storage`} />
-        <Stat label={open ? "Live APR" : "Clearing APR"} value={pct(apr, 2)} sub={open ? `cap ${pct(APR_CAP, 0)}` : "locked"} accent />
+        <Stat label={open ? "Live APR" : "Clearing APR"} value={pct(apr, 2)} sub={open ? `${liveWeight(n, now).toFixed(2)}x tail weight` : "top of book"} accent />
         <Stat label="Takeout" value={usd(e.takeout)} sub={`${e.takeoutCoverage.toFixed(2)}x of build`} />
       </div>
       <div className="space-y-1.5">

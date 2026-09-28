@@ -30,17 +30,21 @@ describe("bridge note lifecycle", () => {
     const n = s.notes.find((x) => x.id === id)!;
     expect(n.stage).toBe(2);
     expect(n.clearingApr).toBeCloseTo(0.185, 3);
-    expect(s.nfts.filter((x) => x.noteId === id)).toHaveLength(3);
+    const nfts = s.nfts.filter((x) => x.noteId === id);
+    expect(nfts).toHaveLength(3);
+    // Early whale: 1.8x weight at 12%. Late investor (7,500 filled at 36h): 1.4x at 18.5%.
+    expect(nfts.find((x) => x.owner === DEMO.whale)!.weight).toBeCloseTo(36_000);
+    expect(nfts.find((x) => x.owner === DEMO.investor)!.weight).toBeCloseTo(7_500 * 1.4);
     s = markBuilt(s, DEMO.admin, id, true, NOW + 3 * D);
     expect(balanceOf(s, DEMO.installer)).toBe(3_500);
     s = markPto(s, DEMO.admin, id, NOW + 40 * D);
     const whaleBefore = balanceOf(s, DEMO.whale);
     s = recordTakeout(s, DEMO.admin, id, 30_650, NOW + 36 * H + 90 * D);
-    expect(balanceOf(s, DEMO.whale) - whaleBefore).toBeCloseTo(20_000 * (1 + 0.185 * 90 / 365), 0);
+    expect(balanceOf(s, DEMO.whale) - whaleBefore).toBeCloseTo(20_000 * (1 + 0.12 * 90 / 365), 0);
     s = recordTail(s, DEMO.admin, id, 1_000, NOW + 100 * D);
     const nft = s.nfts.find((x) => x.owner === DEMO.whale)!;
     const r = claimNft(s, DEMO.whale, nft.id, NOW + 101 * D);
-    expect(r.amount).toBeCloseTo(650 * 20_000 / (27_500 + 400), 2);
+    expect(r.amount).toBeCloseTo(650 * 36_000 / (36_000 + 10_500 + 400), 2);
   });
 
   it("charges 2.5% on pre-fill withdrawals", () => {

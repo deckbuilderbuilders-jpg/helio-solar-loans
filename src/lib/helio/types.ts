@@ -32,6 +32,11 @@ export interface HelioNote {
   deposits: Record<Address, number>;
   /** Exit-fee redistribution owed to lenders who stayed (1.5% of each withdrawal). */
   exitBonus: Record<Address, number>;
+  /** Σ principal × APR locked at each deposit, per lender (later = higher APR). */
+  aprDollars?: Record<Address, number>;
+  /** Σ principal × tail multiplier at each deposit, per lender (earlier = up to 1.8x). */
+  weightDollars?: Record<Address, number>;
+  /** APR at the moment the note filled (the top of the book). */
   clearingApr: number | null;
   fundedAt: number | null;
   dayOne: boolean | null;
