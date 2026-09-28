@@ -259,9 +259,8 @@ function Welcome() {
               <div className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--w-orange)]">Leg two · The tail</div>
               <h2 className="mt-3 font-display text-3xl font-black tracking-tight">The profit keeps paying after you are repaid.</h2>
               <p className="mt-4 opacity-80">
-                Every note mints a Yield NFT holding {pct(TAIL_TO_YIELD, 0)} of the customer's{" "}
-                {usd(flagship.ppaMonthly)} monthly payment and the remaining half of the 15-year REC contract, paid over{" "}
-                {TAIL_QUARTERS} quarters. Hold it for the cash or sell it outright.
+                Every note mints a Yield NFT holding {pct(TAIL_TO_YIELD, 0)} of the remaining half of the 15-year REC
+                contract, paid over {TAIL_QUARTERS} quarters. Hold it for the cash or sell it outright.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
                 {usd(flagship.tailToYieldAnnual)}/yr per 10 kW roof · {pct(yieldNftAnnualRate(flagship))} a year on capital lent
@@ -422,10 +421,10 @@ function Welcome() {
               Profit is the tail, not the rebate.
             </h2>
             <p className="mt-4 max-w-2xl opacity-80">
-              Rebates and the first REC check only return capital. The money is made afterwards: the customer's{" "}
-              {usd(flagship.ppaMonthly)} monthly payment and the remaining half of the REC contract,{" "}
-              {usd(flagship.recTailPerQuarter)} a quarter for {TAIL_QUARTERS} quarters. On a 10 kW roof that is{" "}
-              {usd(flagship.tailAnnual)} a year, split three ways.
+              Rebates and the first REC check only return capital. The money is made afterwards: the remaining half of
+              the REC contract, {usd(flagship.recTailPerQuarter)} a quarter for {TAIL_QUARTERS} quarters. On a 10 kW roof
+              that is {usd(flagship.tailAnnual)} a year, split three ways. The customer's {usd(flagship.ppaMonthly)}{" "}
+              monthly payment goes to HELIO to cover maintenance.
             </p>
             <div className="mt-8 grid gap-3 md:grid-cols-3">
               {[

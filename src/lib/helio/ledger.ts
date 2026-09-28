@@ -9,7 +9,7 @@
  *   mark_built      admin: installer base $0.33/W (+ $0.02/W if done in one day)
  *   mark_pto        admin: Permission to Operate
  *   record_takeout  admin: rebates + first REC land → lenders repaid P+I, creator 3x cash
- *   record_tail     admin: one quarter of PPA + REC tail → 65% NFTs / 28% HELIO / 7% installer
+ *   record_tail     admin: one quarter of REC tail → 65% NFTs / 28% HELIO / 7% installer
  *   claim / list / delist / buy  Yield NFT cash and secondary market
  */
 import { APR_CAP, auctionApr, LOCKUP_MAX_DAYS, LOCKUP_MIN_DAYS, noteInterest } from "./auction";
@@ -108,12 +108,12 @@ export function nftClaimable(n: HelioNote, nft: YieldNft): number {
   return Math.max(0, nft.weight * n.accPerWeight - nft.claimed);
 }
 
-/** Undiscounted tail still to come for this NFT (remaining REC quarters + PPA over those quarters). */
+/** Undiscounted tail still to come for this NFT (remaining REC quarters only; PPA goes to HELIO). */
 export function nftRemainingValue(n: HelioNote, nft: YieldNft): number {
   if (n.totalWeight <= 0) return 0;
   const e = econOf(n);
   const left = Math.max(0, TAIL_QUARTERS - n.tailQuarters);
-  const perQuarter = e.recTailPerQuarter + e.ppaMonthly * 3;
+  const perQuarter = e.recTailPerQuarter;
   return (nft.weight / n.totalWeight) * left * perQuarter * TAIL_TO_YIELD;
 }
 

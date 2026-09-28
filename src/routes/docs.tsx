@@ -62,7 +62,7 @@ waterfall: lenders principal + interest → creator 3x cash → HELIO`}
 
       <Block title="Yield NFTs and the tail">
         <p>
-          When a note fills, each lender gets a Yield NFT weighted by principal. The customer PPA and the remaining 50% REC contract (24 quarters) split{" "}
+          When a note fills, each lender gets a Yield NFT weighted by principal. The remaining 50% REC contract (24 quarters) splits{" "}
           {TAIL_TO_YIELD * 100}% to Yield NFTs and a {TAIL_PROTOCOL_FEE * 100}% protocol fee, of which 20% goes to the installer
           ({(TAIL_TO_INSTALLER * 100).toFixed(0)}% of tail) and {(TAIL_TO_HELIO * 100).toFixed(0)}% to HELIO. Yield NFTs trade on the market; unclaimed cash
           moves with the NFT.

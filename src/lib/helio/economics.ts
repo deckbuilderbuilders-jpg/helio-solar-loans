@@ -11,7 +11,7 @@
  *   2. Lenders fund the build in a reverse Dutch auction (see auction.ts).
  *   3. Day 90–120 takeout (Ameren solar rebate + Ameren storage rebate +
  *      Illinois Shines first 50% REC payment) returns lender principal.
- *   4. Long-tail cash (customer PPA + the remaining 50% REC contract, paid
+ *   4. Long-tail cash (the remaining 50% REC contract, paid
  *      over 24 quarters) is the profit layer, split to Yield NFT holders,
  *      HELIO, and the installer.
  */
@@ -64,7 +64,7 @@ export const PREBOND_EXIT_TO_PROTOCOL = 0.01;
 
 /** Target reduction on the customer's Ameren bill. */
 export const CUSTOMER_BILL_REDUCTION = 0.5;
-/** Customer PPA payment to HELIO, per kW-DC per month (≈$90/mo on 10 kW). */
+/** Customer PPA payment, 100% to HELIO for maintenance — never in the NFT tail. Per kW-DC per month (≈$90/mo on 10 kW). */
 export const PPA_PER_KW_DC_MONTH = 9;
 export const PPA_TERM_YEARS = 15;
 
@@ -141,7 +141,8 @@ export function projectEconomics(kwDc: number, batteryKwh = batteryForSize(kwDc)
   const recTailPerQuarter = recTailTotal / TAIL_QUARTERS;
   const ppaMonthly = kwDc * PPA_PER_KW_DC_MONTH;
   const ppaAnnual = ppaMonthly * 12;
-  const tailAnnual = ppaAnnual + recTailPerQuarter * 4;
+  // Customer PPA goes 100% to HELIO (maintenance, insurance, servicing). Yield NFTs share the REC tail only.
+  const tailAnnual = recTailPerQuarter * 4;
 
   return {
     kwDc,
