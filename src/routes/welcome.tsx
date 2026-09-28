@@ -90,7 +90,7 @@ function Welcome() {
       <div className="border-y border-[var(--w-line)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-6 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <span className="font-medium">Springfield · 10 kW AC · 17/30 panels bonded.</span>
-          <Link to="/project/$id" params={{ id: "springfield-ds1" }} className="underline underline-offset-4 opacity-80">Takeout ≈ $12,150. See the roof.</Link>
+          <Link to="/projects" className="underline underline-offset-4 opacity-80">Takeout ≈ $12,150. See the roof.</Link>
         </div>
       </div>
 
