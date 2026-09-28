@@ -82,14 +82,14 @@ export function EconomicsCalculator() {
             <span>System size</span>
             <span className="num">{kw} kW-DC + {batteryForSize(kw)} kWh</span>
           </div>
-          <Slider min={4} max={25} step={1} value={[kw]} onValueChange={(v) => setKw(v[0])} />
+          <Slider min={4} max={25} step={1} value={[kw]} onValueChange={(v) => setKw(v[0] ?? 10)} />
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>Clearing APR</span>
             <span className="num">{pct(apr, 1)}</span>
           </div>
-          <Slider min={APR_FLOOR * 100} max={APR_CAP * 100} step={0.5} value={[apr * 100]} onValueChange={(v) => setApr(v[0] / 100)} />
+          <Slider min={APR_FLOOR * 100} max={APR_CAP * 100} step={0.5} value={[apr * 100]} onValueChange={(v) => setApr((v[0] ?? 20) / 100)} />
         </div>
       </div>
       <EconomicsTable e={e} apr={apr} />

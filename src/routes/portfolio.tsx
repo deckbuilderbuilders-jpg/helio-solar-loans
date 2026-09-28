@@ -32,13 +32,13 @@ function Portfolio() {
   const mine = nftsOf(state, wallet);
   const created = state.notes.filter((n) => n.creator === wallet);
   const claimTotal = mine.reduce((s, x) => s + nftClaimable(getNote(state, x.noteId), x), 0);
-  const lockedDue = locked.reduce((s, n) => s + (n.deposits[wallet] / Math.max(1, lenderDue(n, now).principal)) * lenderDue(n, now).total, 0);
+  const lockedDue = locked.reduce((s, n) => s + ((n.deposits[wallet] ?? 0) / Math.max(1, lenderDue(n, now).principal)) * lenderDue(n, now).total, 0);
 
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
         <Stat label="Wallet" value={usdc(balance, 0)} />
-        <Stat label="In auctions" value={usd(inAuction.reduce((s, n) => s + n.deposits[wallet], 0))} sub="withdrawable, 2.5% fee" />
+        <Stat label="In auctions" value={usd(inAuction.reduce((s, n) => s + (n.deposits[wallet] ?? 0), 0))} sub="withdrawable, 2.5% fee" />
         <Stat label="Locked notes" value={usd(lockedDue)} sub="due at takeout" />
         <Stat label="Claimable tail" value={usd(claimTotal, 2)} sub={`${mine.length} Yield NFTs`} accent />
       </div>
@@ -50,7 +50,7 @@ function Portfolio() {
             <div key={n.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
               <NoteLink id={n.id}>{n.name}</NoteLink>
               <span className="flex items-center gap-4">
-                <span className="num">{usd(n.deposits[wallet])}</span>
+                <span className="num">{usd(n.deposits[wallet] ?? 0)}</span>
                 <span className="num text-volt">{pct(liveApr(n, now), 2)}</span>
                 <Pill state={noteStatus(n)} />
               </span>

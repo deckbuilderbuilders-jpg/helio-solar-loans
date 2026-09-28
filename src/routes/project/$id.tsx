@@ -106,7 +106,7 @@ function NoteDetail() {
               {n.failed ? "This auction didn't fill. Lenders were refunded; the creator's fee was lost." : "Principal is locked until the Ameren rebates and the first REC payment land. Yield NFTs below carry the tail."}
             </p>
           )}
-          {n.exitBonus[wallet ?? ""] ? <Row label="Your exit-fee bonus" value={usd(n.exitBonus[wallet!], 2)} /> : null}
+          {n.exitBonus[wallet ?? ""] ? <Row label="Your exit-fee bonus" value={usd(n.exitBonus[wallet!] ?? 0, 2)} /> : null}
         </div>
       </div>
 

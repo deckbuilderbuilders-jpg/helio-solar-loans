@@ -227,7 +227,7 @@ export function withdraw(s: LedgerState, a: { lender: Address; noteId: string; a
   const toStayers = amt * PREBOND_EXIT_TO_STAYERS;
   const toProtocol = amt * PREBOND_EXIT_TO_PROTOCOL;
   const deposits = { ...n.deposits, [a.lender]: held - amt };
-  if (deposits[a.lender] < EPS) delete deposits[a.lender];
+  if ((deposits[a.lender] ?? 0) < EPS) delete deposits[a.lender];
   const stayers = Object.entries(deposits);
   const stayTotal = stayers.reduce((x, [, v]) => x + v, 0);
   const exitBonus = { ...n.exitBonus };
