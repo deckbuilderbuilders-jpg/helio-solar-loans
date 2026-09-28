@@ -246,7 +246,8 @@ function Welcome() {
               <h2 className="mt-3 font-display text-3xl font-black tracking-tight">Your $1 comes back from a utility check.</h2>
               <p className="mt-4 opacity-80">
                 Repayment is not a borrower promise. It is the Ameren DG rebate, the Ameren paired-storage rebate and the
-                Illinois Shines first REC payment — {usd(flagship.takeout)} of contracted cash against a{" "}
+                Illinois Shines first REC payment — {usd(flagship.takeout)} of contracted cash, after the state's 5%
+                collateral hold, against a{" "}
                 {usd(flagship.buildCost)} build. No price oracle, no margin call, no rollover.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest opacity-60">

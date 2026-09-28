@@ -51,15 +51,24 @@ export function EconomicsTable({ e, apr, days = LOCKUP_MIN_DAYS }: { e: ProjectE
         <Row label="Ameren solar rebate" sub="$300/kW-DC" value={usd(e.amerenSolarRebate)} />
         <Row label="Ameren storage rebate" sub="$300/kWh" value={usd(e.amerenBatteryRebate)} />
         <Row label="First REC payment" sub="50% of 15-yr contract" value={usd(e.firstRecPayment)} />
-        <Row label="Takeout" value={usd(e.takeout)} strong />
+        <Row label="Collateral held (5%)" sub={`of ${usd(e.recContractTotal)} contract · released later to Yield NFTs`} value={`− ${usd(e.recCollateral)}`} muted />
+        <Row label="Cash that lands" value={usd(e.takeout)} strong />
         <Row label={`Lender interest @ ${pct(apr, 1)}, ${days}d`} value={`− ${usd(interest)}`} muted />
         <Row label={`Creator ${CREATOR_CASH_MULTIPLE}x cash`} value={`− ${usd(e.creatorCashBack)}`} muted />
-        <Row label="Surplus to HELIO" value={usd(e.takeout - e.buildCost - interest - e.creatorCashBack)} muted />
+        {(() => {
+          const left = e.takeout - e.buildCost - interest - e.creatorCashBack;
+          return left >= 0 ? (
+            <Row label="Surplus to HELIO" value={usd(left)} muted />
+          ) : (
+            <Row label="Creator cash deferred" sub="paid from first REC-tail quarters" value={usd(-left)} muted />
+          );
+        })()}
       </div>
       <div>
         <div className="eyebrow mb-2">Long tail (per year)</div>
         <Row label="REC tail" sub="50% over 24 quarters" value={usd(e.recTailPerQuarter * 4)} />
         <Row label="Tail cash" value={usd(e.tailAnnual)} strong />
+        <Row label="Collateral release" sub="one-time, 100% to Yield NFTs" value={usd(e.recCollateral)} />
         <Row label={`Yield NFTs ${pct(TAIL_TO_YIELD, 0)}`} value={usd(e.tailToYieldAnnual)} />
         <Row label={`HELIO ${pct(TAIL_TO_HELIO, 0)}`} sub="35% fee less installer" value={usd(e.tailToHelioAnnual)} muted />
         <Row label={`Installer ${pct(TAIL_TO_INSTALLER, 0)}`} sub="20% of HELIO fee" value={usd(e.tailToInstallerAnnual)} muted />

@@ -318,6 +318,7 @@ export function recordTakeout(s: LedgerState, signer: Address, noteId: string, a
   let left = amount - lendersPay;
   const creatorPay = Math.min(left, n.applicationFee * CREATOR_CASH_MULTIPLE);
   left -= creatorPay;
+  const creatorOwed = n.applicationFee * CREATOR_CASH_MULTIPLE - creatorPay;
   let st = s;
   const ratio = due.total > 0 ? lendersPay / due.total : 0;
   for (const [who, v] of Object.entries(n.deposits)) {
@@ -326,9 +327,20 @@ export function recordTakeout(s: LedgerState, signer: Address, noteId: string, a
   }
   st = credit(st, n.creator, creatorPay);
   st = credit(st, st.config.treasury, left);
-  st = put(st, { ...n, stage: 5, takeoutReceived: amount, lendersRepaid: lendersPay, creatorPaid: creatorPay, helioEarned: n.helioEarned + left });
+  st = put(st, { ...n, stage: 5, takeoutReceived: amount, lendersRepaid: lendersPay, creatorPaid: creatorPay, creatorOwed, helioEarned: n.helioEarned + left });
   const short_ = lendersPay + EPS < due.total ? ` (short ${fmt(due.total - lendersPay)})` : "";
-  return logTx(st, "record_takeout", signer, `${n.name} takeout ${fmt(amount)}: lenders ${fmt(lendersPay)}${short_}, creator ${fmt(creatorPay)}, HELIO ${fmt(left)}`, now);
+  return logTx(st, "record_takeout", signer, `${n.name} takeout ${fmt(amount)}: lenders ${fmt(lendersPay)}${short_}, creator ${fmt(creatorPay)}${creatorOwed > EPS ? ` (${fmt(creatorOwed)} deferred to tail)` : ""}, HELIO ${fmt(left)}`, now);
+}
+
+/** Illinois Shines releases the 5% REC collateral → 100% to Yield NFT holders. */
+export function releaseCollateral(s: LedgerState, signer: Address, noteId: string, now: number): LedgerState {
+  requireAdmin(s, signer, "release_collateral");
+  const n = getNote(s, noteId);
+  if (n.stage < 5) fail("WrongStage", `${n.name} has no collateral held until takeout.`);
+  if (n.collateralReleased) fail("AlreadyReleased", `${n.name} collateral was already released.`);
+  const amt = econOf(n).recCollateral;
+  const st = put(s, { ...n, collateralReleased: true, accPerWeight: n.accPerWeight + (n.totalWeight > 0 ? amt / n.totalWeight : 0) });
+  return logTx(st, "release_collateral", signer, `${n.name} REC collateral ${fmt(amt)} released to Yield NFTs`, now);
 }
 
 export function recordTail(s: LedgerState, signer: Address, noteId: string, amount: number, now: number): LedgerState {
@@ -336,16 +348,22 @@ export function recordTail(s: LedgerState, signer: Address, noteId: string, amou
   const n = getNote(s, noteId);
   if (n.stage < 5 || n.stage > 6) fail("WrongStage", `${n.name} starts its tail after takeout.`);
   if (!(amount > 0)) fail("BadAmount", "Tail payment must be positive.");
-  const toYield = amount * TAIL_TO_YIELD;
-  const toHelio = amount * TAIL_TO_HELIO;
-  const toInstaller = amount * TAIL_TO_INSTALLER;
-  let st = credit(s, s.config.treasury, toHelio);
+  // Deferred creator cash is caught up before the tail split.
+  const catchUp = Math.min(amount, n.creatorOwed ?? 0);
+  const net = amount - catchUp;
+  const toYield = net * TAIL_TO_YIELD;
+  const toHelio = net * TAIL_TO_HELIO;
+  const toInstaller = net * TAIL_TO_INSTALLER;
+  let st = credit(s, n.creator, catchUp);
+  st = credit(st, st.config.treasury, toHelio);
   st = credit(st, st.config.installer, toInstaller);
   const q = n.tailQuarters + 1;
   st = put(st, {
     ...n,
     stage: q >= TAIL_QUARTERS ? 7 : 6,
     tailQuarters: q,
+    creatorOwed: (n.creatorOwed ?? 0) - catchUp,
+    creatorPaid: n.creatorPaid + catchUp,
     tailReceived: n.tailReceived + amount,
     accPerWeight: n.accPerWeight + (n.totalWeight > 0 ? toYield / n.totalWeight : 0),
     helioEarned: n.helioEarned + toHelio,

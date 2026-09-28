@@ -90,6 +90,11 @@ function NoteDetail() {
               <div className="text-xs text-muted-foreground">
                 Wallet {usdc(balance, 0)} · in note {usdc(mine, 0)} · at {pct(apr, 2)} + {liveWeight(n, now).toFixed(2)}x tail weight · 90 days ≈ {usd(Math.min(amount, remaining(n)) * apr * (90 / 365), 2)} interest if it cleared now
               </div>
+              {e.takeout - e.buildCost - e.buildCost * apr * (120 / 365) - e.creatorCashBack < 0 && (
+                <div className="text-[11px] text-muted-foreground">
+                  At this APR and a 120-day lockup, the 5% collateral hold leaves part of the creator's 3x cash to be paid from the first REC-tail quarters. Lenders are still paid first, in full.
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button variant="volt" className="flex-1" disabled={!wallet || amount <= 0} onClick={() => deposit(n.id, amount)}>Deposit</Button>
                 <Button variant="secondary" className="flex-1" disabled={!wallet || mine <= 0} onClick={() => withdraw(n.id, Math.min(amount, mine))}>Withdraw</Button>
