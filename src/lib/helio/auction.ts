@@ -32,6 +32,9 @@ export const AMEREN_REBATE_PER_W_DC = 0.3;
 export const FIRST_REC_PAYMENT_PER_W_DC = 0.845;
 export const TAKEOUT_PER_W_DC = AMEREN_REBATE_PER_W_DC + FIRST_REC_PAYMENT_PER_W_DC;
 
+/** Advance rate: the note funds 85% of cost basis; the installer keeps skin in the game. */
+export const ADVANCE_RATE = 0.85;
+
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /** Offered APR at `hoursElapsed` into the clock. Linear walk, clamped at the cap. */
@@ -52,10 +55,12 @@ export function periodYield(apr: number, days: number): number {
 
 /** Underwrite one roof from nameplate DC watts. */
 export function underwriteNote(wattsDc: number, apr: number, days = LOCKUP_MIN_DAYS) {
-  const principal = wattsDc * INSTALL_COST_PER_W_DC;
+  const cost = wattsDc * INSTALL_COST_PER_W_DC;
+  const principal = cost * ADVANCE_RATE;
   const takeout = wattsDc * TAKEOUT_PER_W_DC;
   const interest = noteInterest(principal, apr, days);
   return {
+    cost,
     principal,
     takeout,
     interest,

@@ -8,6 +8,7 @@ import {
   HARDWARE_COST_PER_W_DC,
   LABOR_COST_PER_W_DC,
   INSTALL_COST_PER_W_DC,
+  ADVANCE_RATE,
   AMEREN_REBATE_PER_W_DC,
   FIRST_REC_PAYMENT_PER_W_DC,
   LOCKUP_MIN_DAYS,
@@ -238,7 +239,7 @@ function Welcome() {
                 repayment comes from Ameren and the state — not from resale, refinancing or a token price.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
-                {usd(wattsDc * INSTALL_COST_PER_W_DC)} out → {usd(note.takeout)} back in {LOCKUP_MIN_DAYS} days
+                {usd(note.principal)} lent → {usd(note.takeout)} takeout in {LOCKUP_MIN_DAYS} days
               </p>
             </div>
           </Reveal>
@@ -331,7 +332,7 @@ function Welcome() {
                   {[
                     ["Hardware, 31-line bill of materials", `$${HARDWARE_COST_PER_W_DC.toFixed(4)}/W`, usd(wattsDc * HARDWARE_COST_PER_W_DC)],
                     ["Labor", `$${LABOR_COST_PER_W_DC.toFixed(2)}/W`, usd(wattsDc * LABOR_COST_PER_W_DC)],
-                    ["Note principal", `$${INSTALL_COST_PER_W_DC.toFixed(4)}/W`, usd(note.principal)],
+                    ["Note principal, 85% advance rate", `$${(INSTALL_COST_PER_W_DC * ADVANCE_RATE).toFixed(4)}/W`, usd(note.principal)],
                   ].map(([a, b, c]) => (
                     <tr key={a} className="border-b border-[var(--w-cream)]/15">
                       <td className="py-3">{a}</td>
