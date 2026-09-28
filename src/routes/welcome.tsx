@@ -78,7 +78,7 @@ function Welcome() {
               onChange={(e) => setQty(e.target.value)}
               placeholder="5 panels into the Springfield roof"
               aria-label="What do you want to fund?"
-              className="h-12 flex-1 rounded-sm border border-[var(--w-line)] bg-transparent px-4 text-base outline-none placeholder:text-[var(--w-navy)]/40 focus:border-[var(--w-navy)]"
+              className="h-12 shrink-0 sm:flex-1 rounded-sm border border-[var(--w-line)] bg-transparent px-4 text-base outline-none placeholder:text-[var(--w-navy)]/40 focus:border-[var(--w-navy)]"
             />
             <button type="submit" className="h-12 rounded-sm bg-[var(--w-orange)] px-6 font-medium text-[var(--w-navy)] transition-opacity hover:opacity-90">Buy a panel</button>
           </form>
