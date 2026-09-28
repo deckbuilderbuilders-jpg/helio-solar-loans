@@ -53,7 +53,7 @@ function Oracle() {
 }
 
 function NoteOps({ n }: { n: HelioNote }) {
-  const { now, failNote, markBuilt, markPto, recordTakeout, recordTail } = useHelio();
+  const { now, failNote, markBuilt, markPto, recordTakeout, recordTail, releaseCollateral } = useHelio();
   const e = econOf(n);
   const [dayOne, setDayOne] = useState(true);
   const [takeout, setTakeout] = useState(String(Math.round(e.takeout)));
@@ -81,6 +81,8 @@ function NoteOps({ n }: { n: HelioNote }) {
             <Button size="sm" variant="volt" onClick={() => recordTakeout(n.id, parseFloat(takeout))}>Settle takeout</Button>
           </>
         )}
+        {n.stage >= 5 && !n.collateralReleased && <Button size="sm" variant="secondary" onClick={() => releaseCollateral(n.id)}>Release collateral ({usd(e.recCollateral)})</Button>}
+        {(n.creatorOwed ?? 0) > 0.01 && <span className="text-[11px] text-muted-foreground">creator owed {usd(n.creatorOwed ?? 0)} from tail</span>}
         {(n.stage === 5 || n.stage === 6) && <Button size="sm" variant="volt" onClick={() => recordTail(n.id, quarter)}>Pay tail Q{n.tailQuarters + 1} ({usd(quarter)})</Button>}
       </div>
     </div>

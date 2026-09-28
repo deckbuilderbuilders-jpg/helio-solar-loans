@@ -18,7 +18,9 @@ describe("bridge note lifecycle", () => {
     const { s, id } = open();
     const e = econOf(s.notes.find((n) => n.id === id)!);
     expect(e.buildCost).toBe(27_500);
-    expect(e.takeout).toBe(30_650);
+    expect(e.grossTakeout).toBe(30_650);
+    expect(e.recCollateral).toBeCloseTo(845);
+    expect(e.takeout).toBeCloseTo(29_805);
     expect(e.applicationFee).toBe(200);
     expect(balanceOf(s, DEMO.investor)).toBe(49_800);
   });

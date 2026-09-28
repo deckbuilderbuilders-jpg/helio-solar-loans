@@ -8,7 +8,7 @@ import * as L from "./ledger";
 import { DEMO, seedState } from "./seed";
 import type { Address, HelioNote, LedgerState } from "./types";
 
-const STORAGE_KEY = "helio:devnet-sim:v4-weights";
+const STORAGE_KEY = "helio:devnet-sim:v5-collateral";
 const WALLET_KEY = "helio:wallet:v3";
 
 export type Role = "investor" | "admin" | "installer";
@@ -32,6 +32,7 @@ export interface HelioContextValue {
   markPto: (noteId: string) => void;
   recordTakeout: (noteId: string, amount: number) => void;
   recordTail: (noteId: string, amount: number) => void;
+  releaseCollateral: (noteId: string) => void;
   claimNft: (nftId: string) => void;
   listNft: (nftId: string, price: number | null) => void;
   buyNft: (nftId: string) => void;
@@ -117,6 +118,7 @@ export function HelioProvider({ children }: { children: ReactNode }) {
       markBuilt: (noteId, dayOne) => simple("Marked built", (st, t) => L.markBuilt(st, me(), noteId, dayOne, t)),
       markPto: (noteId) => simple("PTO recorded", (st, t) => L.markPto(st, me(), noteId, t)),
       recordTakeout: (noteId, amount) => simple("Takeout settled", (st, t) => L.recordTakeout(st, me(), noteId, amount, t)),
+      releaseCollateral: (noteId) => simple("Collateral released", (st, t) => L.releaseCollateral(st, me(), noteId, t)),
       recordTail: (noteId, amount) => simple("Tail quarter paid", (st, t) => L.recordTail(st, me(), noteId, amount, t)),
       claimNft: (nftId) =>
         run("Claimed", (st, t) => {
