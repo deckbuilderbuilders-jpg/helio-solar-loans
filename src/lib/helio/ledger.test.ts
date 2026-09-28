@@ -90,13 +90,15 @@ describe("bridge note lifecycle", () => {
     expect(n.creatorOwed).toBeCloseTo(owed, 0);
     const creatorBefore = balanceOf(s, DEMO.investor);
     s = recordTail(s, DEMO.admin, id, e.recTailPerQuarter, NOW + 200 * D);
+    expect(balanceOf(s, DEMO.investor) - creatorBefore).toBeCloseTo(e.recTailPerQuarter, 0);
+    s = recordTail(s, DEMO.admin, id, e.recTailPerQuarter, NOW + 290 * D);
     expect(balanceOf(s, DEMO.investor) - creatorBefore).toBeCloseTo(owed, 0);
     n = s.notes.find((x) => x.id === id)!;
     expect(n.creatorOwed).toBeCloseTo(0);
     const acc = n.accPerWeight;
-    s = releaseCollateral(s, DEMO.admin, id, NOW + 300 * D);
+    s = releaseCollateral(s, DEMO.admin, id, NOW + 400 * D);
     n = s.notes.find((x) => x.id === id)!;
     expect((n.accPerWeight - acc) * n.totalWeight).toBeCloseTo(845);
-    expect(() => releaseCollateral(s, DEMO.admin, id, NOW + 301 * D)).toThrow();
+    expect(() => releaseCollateral(s, DEMO.admin, id, NOW + 401 * D)).toThrow();
   });
 });
