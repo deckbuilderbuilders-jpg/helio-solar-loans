@@ -58,13 +58,13 @@ export function EconomicsTable({ e, apr, days = LOCKUP_MIN_DAYS }: { e: ProjectE
       </div>
       <div>
         <div className="eyebrow mb-2">Long tail (per year)</div>
-        <Row label="Customer PPA" sub={`${usd(e.ppaMonthly)}/mo · bill cut 50%`} value={usd(e.ppaAnnual)} />
         <Row label="REC tail" sub="50% over 24 quarters" value={usd(e.recTailPerQuarter * 4)} />
         <Row label="Tail cash" value={usd(e.tailAnnual)} strong />
         <Row label={`Yield NFTs ${pct(TAIL_TO_YIELD, 0)}`} value={usd(e.tailToYieldAnnual)} />
         <Row label={`HELIO ${pct(TAIL_TO_HELIO, 0)}`} sub="35% fee less installer" value={usd(e.tailToHelioAnnual)} muted />
         <Row label={`Installer ${pct(TAIL_TO_INSTALLER, 0)}`} sub="20% of HELIO fee" value={usd(e.tailToInstallerAnnual)} muted />
         <Row label={`Creator ${CREATOR_YIELD_MULTIPLE}x NFT credit`} value={usd(e.creatorYieldCredit)} muted />
+        <Row label="Customer PPA → HELIO" sub={`${usd(e.ppaMonthly)}/mo · maintenance, not in NFT`} value={usd(e.ppaAnnual)} muted />
       </div>
     </div>
   );

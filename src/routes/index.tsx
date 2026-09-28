@@ -48,8 +48,8 @@ function Landing() {
             <span className="text-volt">You bridge the 90 days.</span>
           </h1>
           <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-            Lend USDC into a single roof's build. Ameren and Illinois Shines repay you in 90–120 days. Your Yield NFT keeps paying from the customer PPA and the
-            REC tail for six years.
+            Lend USDC into a single roof's build. Ameren and Illinois Shines repay you in 90–120 days. Your Yield NFT keeps paying from the REC tail for six
+            years.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="volt" size="lg">
