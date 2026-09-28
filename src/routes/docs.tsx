@@ -69,6 +69,15 @@ waterfall: lenders principal + interest → creator 3x cash → HELIO`}
         </p>
       </Block>
 
+      <Block title="REC collateral (5%)">
+        <p>
+          Illinois Shines holds 5% of the full 15-year REC contract as collateral ($845 on a 10 kW roof). HELIO underwrites on the cash that
+          actually lands. Payout order at takeout: lenders' principal + locked interest first, then the creator's 3x cash, then HELIO. If a note
+          clears near the cap and runs 120 days, the unpaid creator cash is caught up from the first REC-tail quarters before Yield NFTs are paid.
+          When the state releases the collateral, 100% goes to Yield NFT holders.
+        </p>
+      </Block>
+
       <Block title="REC engine">
         <p>
           Nameplate is kW AC. Year-1 RECs = kW AC × {(CAPACITY_FACTOR * 100).toFixed(2)}% capacity factor × 8,760 h ÷ 1,000. The 15-year total sums
