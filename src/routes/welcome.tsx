@@ -43,22 +43,23 @@ export const WELCOMED_KEY = "helio.welcomed";
 export const Route = createFileRoute("/welcome")({
   head: () => ({
     meta: [
-      { title: "HELIO — Free solar and batteries. Half the power bill." },
+      { title: "HELIO — Lend $1. Get $1+ back at PTO. Keep the six-year tail." },
       {
         name: "description",
         content:
-          "HELIO gives Illinois homeowners solar plus storage at zero cost and cuts their power bill in half. Lenders fund the 90–120 day build, get principal back from Ameren and Illinois Shines, and hold a Yield NFT on the customer payments and the six-year REC tail.",
+          "Fund Illinois solar and storage notes. Ameren rebates and the first Illinois Shines REC payment return principal plus interest in 90–120 days, and you keep a tradable Yield NFT on six years of quarterly cash.",
       },
-      { property: "og:title", content: "HELIO — Free solar. Half the bill. You fund the 90 days." },
+      { property: "og:title", content: "HELIO — Lend $1. Get $1+ back at PTO. Keep the tail." },
       {
         property: "og:description",
         content:
-          "Ameren and Illinois Shines repay the build in 90–120 days. Profit comes from customer payments and the six-year REC tail.",
+          "Principal back from utility and state checks in 90–120 days. Profit from a tradable Yield NFT on 24 REC quarters and customer payments.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+
   component: Welcome,
 });
 
