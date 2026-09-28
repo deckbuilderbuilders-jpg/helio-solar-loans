@@ -1,18 +1,17 @@
 /**
- * HelioProvider — holds the simulated devnet ledger, the connected demo wallet and a live clock.
- * State persists to localStorage so a judge can reload mid-demo; "Reset demo" re-runs the seed.
+ * HelioProvider — simulated devnet ledger, connected demo wallet, live clock.
+ * Persists to localStorage; "Reset demo" re-runs the seed.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import * as L from "./ledger";
 import { DEMO, seedState } from "./seed";
-import type { Address, Gate, HelioProject, LedgerState, PayoutKind } from "./types";
-import type { ProjectSpecs } from "./takeout";
+import type { Address, HelioNote, LedgerState } from "./types";
 
-const STORAGE_KEY = "helio:devnet-sim:v2";
-const WALLET_KEY = "helio:wallet:v2";
+const STORAGE_KEY = "helio:devnet-sim:v3-notes";
+const WALLET_KEY = "helio:wallet:v3";
 
-export type Role = "investor" | "admin";
+export type Role = "investor" | "admin" | "installer";
 
 export interface HelioContextValue {
   ready: boolean;
@@ -21,24 +20,26 @@ export interface HelioContextValue {
   wallet: Address | null;
   role: Role | null;
   balance: number;
-  panels: number;
   connect: (role: Role) => void;
   disconnect: () => void;
   resetDemo: () => void;
   faucet: (amount?: number) => void;
-  buyPanels: (count: number) => void;
-  bondPanels: (projectId: string, panels: number) => void;
-  originate: (a: Omit<L.OriginateArgs, "now">) => HelioProject | null;
-  setGate: (projectId: string, gate: Gate) => void;
-  recordPayment: (projectId: string, kind: PayoutKind, amount: number, memo: string) => void;
-  claim: (projectId: string) => void;
+  createNote: (a: Omit<L.CreateArgs, "now">) => HelioNote | null;
+  deposit: (noteId: string, amount: number) => void;
+  withdraw: (noteId: string, amount: number) => void;
+  failNote: (noteId: string) => void;
+  markBuilt: (noteId: string, dayOne: boolean) => void;
+  markPto: (noteId: string) => void;
+  recordTakeout: (noteId: string, amount: number) => void;
+  recordTail: (noteId: string, amount: number) => void;
+  claimNft: (nftId: string) => void;
+  listNft: (nftId: string, price: number | null) => void;
+  buyNft: (nftId: string) => void;
 }
 
 const Ctx = createContext<HelioContextValue | null>(null);
-
-const roleWallet: Record<Role, Address> = { investor: DEMO.investor, admin: DEMO.admin };
-const walletRole = (w: Address | null): Role | null => (w === DEMO.admin ? "admin" : w ? "investor" : null);
-
+const roleWallet: Record<Role, Address> = { investor: DEMO.investor, admin: DEMO.admin, installer: DEMO.installer };
+const walletRole = (w: Address | null): Role | null => (w === DEMO.admin ? "admin" : w === DEMO.installer ? "installer" : w ? "investor" : null);
 const nowSec = () => Math.floor(Date.now() / 1000);
 
 export function HelioProvider({ children }: { children: ReactNode }) {
@@ -57,7 +58,6 @@ export function HelioProvider({ children }: { children: ReactNode }) {
     const t = window.setInterval(() => setNow(nowSec()), 1000);
     return () => window.clearInterval(t);
   }, []);
-
   useEffect(() => {
     if (state) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
@@ -81,16 +81,14 @@ export function HelioProvider({ children }: { children: ReactNode }) {
     },
     [state],
   );
-
-  const requireWallet = useCallback((): Address => {
-    if (!wallet) {
-      throw new L.HelioError("NoWallet", "Connect a wallet first — use “Load demo wallet” in the header.");
-    }
+  const me = useCallback((): Address => {
+    if (!wallet) throw new L.HelioError("NoWallet", "Connect a wallet first — use the wallet menu in the header.");
     return wallet;
   }, [wallet]);
 
   const value = useMemo<HelioContextValue>(() => {
     const s = state ?? seedState(0);
+    const simple = (label: string, f: (st: LedgerState, t: number) => LedgerState) => run(label, (st, t) => ({ state: f(st, t), result: null }));
     return {
       ready: state !== null,
       state: s,
@@ -98,47 +96,37 @@ export function HelioProvider({ children }: { children: ReactNode }) {
       wallet,
       role: walletRole(wallet),
       balance: wallet ? L.balanceOf(s, wallet) : 0,
-      panels: wallet ? L.panelsOf(s, wallet) : 0,
       connect: (role) => {
         setWallet(roleWallet[role]);
-        toast.success(role === "admin" ? "Connected originator admin" : "Connected demo wallet", { description: L.short(roleWallet[role]) });
+        toast.success(`Connected ${role === "admin" ? "oracle admin" : role === "installer" ? "installer" : "demo lender"}`, { description: L.short(roleWallet[role]) });
       },
       disconnect: () => setWallet(null),
       resetDemo: () => {
         setState(seedState(nowSec()));
-        toast.success("Demo reseeded", { description: "500-panel mint · 4 originated jobs · 1 paid out" });
+        toast.success("Demo reseeded", { description: "2 live auctions · 1 funded · 1 streaming tail" });
       },
-      faucet: (amount = 10_000) =>
-        run("Faucet", (st, t) => ({ state: L.faucet(st, requireWallet(), amount, t), result: null })),
-      buyPanels: (count) =>
-        run("Panels minted", (st, t) => {
-          const r = L.buyPanels(st, { buyer: requireWallet(), count, now: t });
-          return { state: r.state, result: null };
+      faucet: (amount = 10_000) => simple("Faucet", (st, t) => L.faucet(st, me(), amount, t)),
+      createNote: (a) =>
+        run("Note created", (st, t) => {
+          const r = L.createNote(st, me(), { ...a, now: t });
+          return { state: r.state, result: r.note };
         }),
-      bondPanels: (projectId, panels) =>
-        run("Panels burned into project", (st, t) => {
-          const r = L.bondPanels(st, { holder: requireWallet(), projectId, panels, now: t });
-          return { state: r.state, result: null };
-        }),
-      originate: (a) =>
-        run("Project originated", (st, t) => {
-          const r = L.originateProject(st, requireWallet(), { ...a, now: t });
-          return { state: r.state, result: r.project };
-        }),
-      setGate: (projectId, gate) =>
-        run(`Gate set to G${gate}`, (st, t) => ({ state: L.adminSetGate(st, requireWallet(), projectId, gate, t), result: null })),
-      recordPayment: (projectId, kind, amount, memo) =>
-        run(kind === "rebate" ? "Ameren rebate credited" : kind === "rec" ? "First REC payment credited" : "REC tail quarter credited", (st, t) => ({
-          state: L.recordTakeoutPayment(st, { signer: requireWallet(), projectId, kind, amount, memo, now: t }),
-          result: null,
-        })),
-      claim: (projectId) =>
+      deposit: (noteId, amount) => simple("Deposited", (st, t) => L.deposit(st, { lender: me(), noteId, amount, now: t })),
+      withdraw: (noteId, amount) => simple("Withdrawn", (st, t) => L.withdraw(st, { lender: me(), noteId, amount, now: t })),
+      failNote: (noteId) => simple("Note failed", (st, t) => L.failNote(st, me(), noteId, t)),
+      markBuilt: (noteId, dayOne) => simple("Marked built", (st, t) => L.markBuilt(st, me(), noteId, dayOne, t)),
+      markPto: (noteId) => simple("PTO recorded", (st, t) => L.markPto(st, me(), noteId, t)),
+      recordTakeout: (noteId, amount) => simple("Takeout settled", (st, t) => L.recordTakeout(st, me(), noteId, amount, t)),
+      recordTail: (noteId, amount) => simple("Tail quarter paid", (st, t) => L.recordTail(st, me(), noteId, amount, t)),
+      claimNft: (nftId) =>
         run("Claimed", (st, t) => {
-          const r = L.claim(st, { holder: requireWallet(), projectId, now: t });
+          const r = L.claimNft(st, me(), nftId, t);
           return { state: r.state, result: null };
         }),
+      listNft: (nftId, price) => simple(price === null ? "Delisted" : "Listed", (st, t) => L.listNft(st, me(), nftId, price, t)),
+      buyNft: (nftId) => simple("Yield NFT bought", (st, t) => L.buyNft(st, me(), nftId, t)),
     };
-  }, [state, now, wallet, run, requireWallet]);
+  }, [state, now, wallet, run, me]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
