@@ -73,7 +73,7 @@ export const STAGES = [
   { id: 3, code: "S3", title: "Built — installer paid $0.33/W (+ $0.02/W day-one)" },
   { id: 4, code: "S4", title: "Ameren Permission to Operate, rebates filed" },
   { id: 5, code: "S5", title: "Takeout landed — lenders repaid P+I, creator 3x cash" },
-  { id: 6, code: "S6", title: "PPA + REC tail streaming to Yield NFTs" },
+  { id: 6, code: "S6", title: "REC tail streaming to Yield NFTs" },
   { id: 7, code: "S7", title: "REC tail complete (24 quarters)" },
 ] as const;
 /** @deprecated alias kept for docs. */

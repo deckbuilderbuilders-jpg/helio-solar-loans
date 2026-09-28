@@ -8,7 +8,7 @@ export type Address = string;
  * 3 Built    — installer paid base (+ day-one bonus)
  * 4 PTO      — Ameren Permission to Operate, rebates filed
  * 5 Repaid   — takeout landed: lenders repaid principal + interest, creator 3x cash
- * 6 Tail     — PPA + REC tail streaming to Yield NFTs
+ * 6 Tail     — REC tail streaming to Yield NFTs
  * 7 Complete — REC tail fully paid
  */
 export type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;

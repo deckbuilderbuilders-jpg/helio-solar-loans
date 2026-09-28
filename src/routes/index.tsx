@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "HELIO — Bridge Illinois solar roofs for 90 days" },
-      { name: "description", content: "Fund fixed-term USDC bridge notes against Ameren rebates and Illinois Shines REC payments. APR climbs 12% to 25% until each roof fills, then Yield NFTs stream the PPA and REC tail." },
+      { name: "description", content: "Fund fixed-term USDC bridge notes against Ameren rebates and Illinois Shines REC payments. APR climbs 12% to 25% until each roof fills, then Yield NFTs stream the REC tail." },
       { property: "og:title", content: "HELIO — Bridge Illinois solar roofs for 90 days" },
       { property: "og:description", content: "Reverse Dutch auction bridge notes, repaid by Ameren and Illinois Shines. Yield NFTs stream the tail." },
       { property: "og:type", content: "website" },
@@ -25,7 +25,7 @@ const STEPS = [
   { icon: Sprout, title: "Create", body: "Anyone opens a roof by paying the $20/kW application fee. It's the only money at risk. Pays back 3x cash + 2x Yield NFT." },
   { icon: Gavel, title: "Auction", body: "APR starts at 12% and climbs to a 25% cap until the build is funded. Exit before it fills for a 2.5% fee." },
   { icon: Hammer, title: "Build", body: "Installer earns $0.33/W, plus $0.02/W for a one-day install. Customer gets solar + storage and a 50% smaller bill." },
-  { icon: Coins, title: "Repay + tail", body: "Day 90–120: Ameren rebates and the first REC check repay principal + interest. Then Yield NFTs stream 65% of PPA + REC tail." },
+  { icon: Coins, title: "Repay + tail", body: "Day 90–120: Ameren rebates and the first REC check repay principal + interest. Then Yield NFTs stream 65% of the REC tail." },
 ];
 
 function Landing() {
@@ -63,7 +63,7 @@ function Landing() {
             <Stat label="Live auctions" value={ready ? live.length : "—"} sub={`${notes.length} notes total`} />
             <Stat label="kW-DC created" value={ready ? kw.toFixed(0) : "—"} sub="solar + storage" />
             <Stat label="Lenders repaid" value={ready ? usd(repaid) : "—"} sub="principal + interest" />
-            <Stat label="Tail paid" value={ready ? usd(tail) : "—"} sub="PPA + REC tail" accent />
+            <Stat label="Tail paid" value={ready ? usd(tail) : "—"} sub="REC tail" accent />
           </div>
         </div>
         {featured && (

@@ -8,9 +8,9 @@ export const Route = createFileRoute("/market")({
   head: () => ({
     meta: [
       { title: "Yield NFT market — HELIO" },
-      { name: "description", content: "Buy and sell HELIO Yield NFTs: tradable claims on the customer PPA and Illinois Shines REC tail of funded roofs." },
+      { name: "description", content: "Buy and sell HELIO Yield NFTs: tradable claims on the Illinois Shines REC tail of funded roofs." },
       { property: "og:title", content: "Yield NFT market — HELIO" },
-      { property: "og:description", content: "Price the six-year PPA + REC tail yourself." },
+      { property: "og:description", content: "Price the six-year REC tail yourself." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -23,7 +23,7 @@ function Market() {
   const listed = state.nfts.filter((x) => x.listPrice !== null);
   return (
     <div className="space-y-6">
-      <SectionHead eyebrow="Secondary" title="Yield NFT market" right={<span className="max-w-sm text-xs text-muted-foreground">Unclaimed cash moves with the NFT. Tail left is undiscounted: remaining REC quarters + PPA at 65%.</span>} />
+      <SectionHead eyebrow="Secondary" title="Yield NFT market" right={<span className="max-w-sm text-xs text-muted-foreground">Unclaimed cash moves with the NFT. Tail left is undiscounted: 65% of remaining REC quarters.</span>} />
       {listed.length === 0 && <Empty title="Nothing listed" body="List a Yield NFT from your portfolio to set a price." />}
       <div className="grid gap-4 md:grid-cols-2">
         {listed.map((x) => {

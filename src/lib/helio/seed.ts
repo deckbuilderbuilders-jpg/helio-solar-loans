@@ -54,7 +54,7 @@ export function seedState(now: number): LedgerState {
   const cNote = s.notes.find((n) => n.id === charleston)!;
   s = recordTakeout(s, DEMO.admin, charleston, econOf(cNote).takeout, cStart + 40 * H + 118 * D);
   const e = econOf(cNote);
-  s = recordTail(s, DEMO.admin, charleston, e.recTailPerQuarter + e.ppaMonthly * 3, now - 3 * D);
+  s = recordTail(s, DEMO.admin, charleston, e.recTailPerQuarter, now - 3 * D);
   const whaleNft = s.nfts.find((x) => x.noteId === charleston && x.owner === DEMO.whale)!;
   s = listNft(s, DEMO.whale, whaleNft.id, 9_800, now - 2 * D);
 

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/oracle")({
   head: () => ({
     meta: [
       { title: "Oracle console — HELIO" },
-      { name: "description", content: "Admin console: mark builds, record PTO, settle Ameren + Illinois Shines takeout and pay PPA + REC tail quarters." },
+      { name: "description", content: "Admin console: mark builds, record PTO, settle Ameren + Illinois Shines takeout and pay REC tail quarters." },
       { property: "og:title", content: "Oracle console — HELIO" },
       { property: "og:description", content: "Advance notes and inject takeout and tail USDC for the demo." },
       { property: "og:type", content: "website" },
@@ -57,7 +57,7 @@ function NoteOps({ n }: { n: HelioNote }) {
   const e = econOf(n);
   const [dayOne, setDayOne] = useState(true);
   const [takeout, setTakeout] = useState(String(Math.round(e.takeout)));
-  const quarter = e.recTailPerQuarter + e.ppaMonthly * 3;
+  const quarter = e.recTailPerQuarter;
   return (
     <div className="panel flex flex-wrap items-center justify-between gap-4 p-4">
       <div className="min-w-0">
