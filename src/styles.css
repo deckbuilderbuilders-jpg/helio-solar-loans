@@ -5,8 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * HELIO design system — "warning label on a combiner box".
- * Near-black surfaces, volt-yellow accent, mono numerals. Institutional, not meme.
+ * HELIO design system — matches the /welcome splash.
+ * Cream ground, navy type, orange only for primary action and accents. Mono numerals.
  */
 
 @theme inline {
@@ -64,8 +64,8 @@
   --color-warning: var(--warning);
   --color-grid-line: var(--grid-line);
 
-  --shadow-volt: 0 0 0 1px var(--volt-dim), 0 12px 40px -12px oklch(0.9 0.2 105 / 35%);
-  --shadow-card: 0 1px 0 0 oklch(1 0 0 / 4%) inset, 0 10px 30px -18px oklch(0 0 0 / 80%);
+  --shadow-volt: 0 0 0 1px var(--volt-dim), 0 12px 30px -14px oklch(0.72 0.18 38 / 45%);
+  --shadow-card: 0 1px 2px 0 oklch(0.19 0.017 250 / 5%), 0 12px 30px -20px oklch(0.19 0.017 250 / 25%);
 
   --animate-pulse-volt: pulse-volt 2.4s ease-in-out infinite;
   --animate-rise: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -81,58 +81,55 @@
 }
 
 :root {
-  --radius: 0.25rem;
+  --radius: 0.5rem;
 
-  --background: oklch(0.145 0.004 260);
-  --foreground: oklch(0.96 0.005 95);
-  --card: oklch(0.185 0.005 260);
-  --card-foreground: oklch(0.96 0.005 95);
-  --popover: oklch(0.2 0.005 260);
-  --popover-foreground: oklch(0.96 0.005 95);
+  /* Splash brand: cream ground, navy type, orange action. */
+  --background: oklch(0.988 0.008 50);
+  --foreground: oklch(0.19 0.017 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.19 0.017 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.017 250);
 
-  /* primary = volt yellow */
-  --primary: oklch(0.9 0.2 105);
-  --primary-foreground: oklch(0.15 0.02 105);
-  --volt: oklch(0.9 0.2 105);
-  --volt-foreground: oklch(0.15 0.02 105);
-  --volt-dim: oklch(0.9 0.2 105 / 25%);
+  /* primary = navy; volt = brand orange (primary action + path) */
+  --primary: oklch(0.19 0.017 250);
+  --primary-foreground: oklch(0.988 0.008 50);
+  --volt: oklch(0.72 0.18 38);
+  --volt-foreground: oklch(0.19 0.017 250);
+  --volt-dim: oklch(0.72 0.18 38 / 22%);
 
-  --secondary: oklch(0.24 0.006 260);
-  --secondary-foreground: oklch(0.96 0.005 95);
-  --muted: oklch(0.22 0.005 260);
-  --muted-foreground: oklch(0.66 0.01 90);
-  --accent: oklch(0.26 0.007 260);
-  --accent-foreground: oklch(0.96 0.005 95);
-  --destructive: oklch(0.62 0.21 27);
-  --destructive-foreground: oklch(0.98 0.01 27);
-  --border: oklch(0.29 0.006 260);
-  --input: oklch(0.3 0.006 260);
-  --ring: oklch(0.9 0.2 105);
+  --secondary: oklch(0.955 0.012 55);
+  --secondary-foreground: oklch(0.19 0.017 250);
+  --muted: oklch(0.96 0.01 55);
+  --muted-foreground: oklch(0.45 0.015 250);
+  --accent: oklch(0.945 0.018 50);
+  --accent-foreground: oklch(0.19 0.017 250);
+  --destructive: oklch(0.55 0.2 27);
+  --destructive-foreground: oklch(0.99 0.005 27);
+  --border: oklch(0.19 0.017 250 / 14%);
+  --input: oklch(0.19 0.017 250 / 20%);
+  --ring: oklch(0.72 0.18 38);
 
-  --surface: oklch(0.165 0.004 260);
-  --surface-2: oklch(0.215 0.005 260);
-  --positive: oklch(0.78 0.17 150);
-  --warning: oklch(0.75 0.16 60);
-  --grid-line: oklch(1 0 0 / 4%);
+  --surface: oklch(0.975 0.01 55);
+  --surface-2: oklch(0.955 0.012 55);
+  --positive: oklch(0.55 0.14 150);
+  --warning: oklch(0.62 0.16 60);
+  --grid-line: oklch(0.19 0.017 250 / 5%);
 
-  --chart-1: oklch(0.9 0.2 105);
-  --chart-2: oklch(0.78 0.17 150);
-  --chart-3: oklch(0.66 0.01 90);
-  --chart-4: oklch(0.75 0.16 60);
-  --chart-5: oklch(0.62 0.21 27);
+  --chart-1: oklch(0.72 0.18 38);
+  --chart-2: oklch(0.19 0.017 250);
+  --chart-3: oklch(0.45 0.015 250);
+  --chart-4: oklch(0.62 0.16 60);
+  --chart-5: oklch(0.55 0.14 150);
 
-  --sidebar: oklch(0.165 0.004 260);
-  --sidebar-foreground: oklch(0.96 0.005 95);
-  --sidebar-primary: oklch(0.9 0.2 105);
-  --sidebar-primary-foreground: oklch(0.15 0.02 105);
-  --sidebar-accent: oklch(0.24 0.006 260);
-  --sidebar-accent-foreground: oklch(0.96 0.005 95);
-  --sidebar-border: oklch(0.29 0.006 260);
-  --sidebar-ring: oklch(0.9 0.2 105);
-}
-
-.dark {
-  --background: oklch(0.145 0.004 260);
+  --sidebar: oklch(0.975 0.01 55);
+  --sidebar-foreground: oklch(0.19 0.017 250);
+  --sidebar-primary: oklch(0.19 0.017 250);
+  --sidebar-primary-foreground: oklch(0.988 0.008 50);
+  --sidebar-accent: oklch(0.945 0.018 50);
+  --sidebar-accent-foreground: oklch(0.19 0.017 250);
+  --sidebar-border: oklch(0.19 0.017 250 / 14%);
+  --sidebar-ring: oklch(0.72 0.18 38);
 }
 
 @layer base {
@@ -140,7 +137,7 @@
     border-color: var(--color-border);
   }
   html {
-    color-scheme: dark;
+    color-scheme: light;
   }
   body {
     background-color: var(--color-background);
@@ -154,7 +151,8 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    font-weight: 700;
+    letter-spacing: -0.03em;
   }
   ::selection {
     background: var(--volt);
