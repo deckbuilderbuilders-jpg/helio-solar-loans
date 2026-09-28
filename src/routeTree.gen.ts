@@ -16,6 +16,7 @@ import { Route as OriginateRouteImport } from './routes/originate'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -53,6 +54,11 @@ const ShopRoute = ShopRouteImport.update({
   path: '/shop',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectIdRoute = ProjectIdRouteImport.update({
   id: '/project/$id',
   path: '/project/$id',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
+  '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
+  '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
   '/shop': typeof ShopRoute
+  '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/projects'
     | '/shop'
+    | '/welcome'
     | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/projects'
     | '/shop'
+    | '/welcome'
     | '/project/$id'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/portfolio'
     | '/projects'
     | '/shop'
+    | '/welcome'
     | '/project/$id'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   PortfolioRoute: typeof PortfolioRoute
   ProjectsRoute: typeof ProjectsRoute
   ShopRoute: typeof ShopRoute
+  WelcomeRoute: typeof WelcomeRoute
   ProjectIdRoute: typeof ProjectIdRoute
 }
 
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/project/$id': {
       id: '/project/$id'
       path: '/project/$id'
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   PortfolioRoute: PortfolioRoute,
   ProjectsRoute: ProjectsRoute,
   ShopRoute: ShopRoute,
+  WelcomeRoute: WelcomeRoute,
   ProjectIdRoute: ProjectIdRoute,
 }
 export const routeTree = rootRouteImport
