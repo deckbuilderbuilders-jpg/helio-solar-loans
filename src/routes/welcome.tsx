@@ -186,14 +186,15 @@ function Welcome() {
       <section style={grid} className="border-b border-[var(--w-line)]">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:py-24">
           <Reveal>
-            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-70">Free to the homeowner · Funded by you</div>
+            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-70">
+              Senior secured bridge notes · {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} day lockup
+            </div>
             <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-              Free solar. Half<br />the <span className="text-[var(--w-orange)]">power bill.</span>
+              Lend $1. Get {usd(1 + periodYield(apr, LOCKUP_MIN_DAYS), 2)} back.<br />Keep the <span className="text-[var(--w-orange)]">six-year tail.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg opacity-80">
-              HELIO puts solar and a {batteryForSize(10)} kWh battery on an Illinois roof at zero cost to the homeowner and
-              cuts their Ameren bill in half. Illinois rebates and the first REC payment return your principal in{" "}
-              {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. Your profit comes after: customer payments plus six years of REC checks.
+              Ameren and Illinois Shines repay the note in {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. You keep a tradable
+              Yield NFT paying quarterly for six years.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={enter} className="h-12 rounded-md bg-[var(--w-orange)] px-6 font-semibold text-[var(--w-navy)] hover:opacity-90">
@@ -205,8 +206,8 @@ function Welcome() {
             </div>
             <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--w-line)] pt-5 text-sm">
               {[
-                [pct(CUSTOMER_BILL_REDUCTION, 0), "Customer bill cut"],
-                [`${flagship.takeoutCoverage.toFixed(2)}×`, "Day-90 cash on build cost"],
+                [`${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS}d`, "To full principal return"],
+                [`${flagship.takeoutCoverage.toFixed(2)}×`, "Contracted takeout cover"],
                 [pct(yieldNftAnnualRate(flagship)), "Tail yield, per year"],
               ].map(([v, l]) => (
                 <div key={l}>
@@ -216,6 +217,7 @@ function Welcome() {
               ))}
             </dl>
           </Reveal>
+
           <Reveal>
             <div className="relative">
               <img src={roof} alt="Solar panels on an Illinois home roof" width={1280} height={896} className="aspect-[4/3] w-full rounded-lg border border-[var(--w-navy)] object-cover" />
