@@ -15,7 +15,6 @@ import { Route as OracleRouteImport } from './routes/oracle'
 import { Route as OriginateRouteImport } from './routes/originate'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as ShopRouteImport } from './routes/shop'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
 
@@ -49,11 +48,6 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShopRoute = ShopRouteImport.update({
-  id: '/shop',
-  path: '/shop',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
@@ -72,7 +66,6 @@ export interface FileRoutesByFullPath {
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
@@ -83,7 +76,6 @@ export interface FileRoutesByTo {
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
@@ -95,7 +87,6 @@ export interface FileRoutesById {
   '/originate': typeof OriginateRoute
   '/portfolio': typeof PortfolioRoute
   '/projects': typeof ProjectsRoute
-  '/shop': typeof ShopRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
@@ -108,7 +99,6 @@ export interface FileRouteTypes {
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -119,7 +109,6 @@ export interface FileRouteTypes {
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   id:
@@ -130,7 +119,6 @@ export interface FileRouteTypes {
     | '/originate'
     | '/portfolio'
     | '/projects'
-    | '/shop'
     | '/welcome'
     | '/project/$id'
   fileRoutesById: FileRoutesById
@@ -142,7 +130,6 @@ export interface RootRouteChildren {
   OriginateRoute: typeof OriginateRoute
   PortfolioRoute: typeof PortfolioRoute
   ProjectsRoute: typeof ProjectsRoute
-  ShopRoute: typeof ShopRoute
   WelcomeRoute: typeof WelcomeRoute
   ProjectIdRoute: typeof ProjectIdRoute
 }
@@ -191,13 +178,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/shop': {
-      id: '/shop'
-      path: '/shop'
-      fullPath: '/shop'
-      preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/welcome': {
       id: '/welcome'
       path: '/welcome'
@@ -222,7 +202,6 @@ const rootRouteChildren: RootRouteChildren = {
   OriginateRoute: OriginateRoute,
   PortfolioRoute: PortfolioRoute,
   ProjectsRoute: ProjectsRoute,
-  ShopRoute: ShopRoute,
   WelcomeRoute: WelcomeRoute,
   ProjectIdRoute: ProjectIdRoute,
 }

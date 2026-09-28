@@ -65,14 +65,16 @@ export const ORIGINATOR_TAIL_BPS = 2000;
 export const SECONDS_PER_YEAR = 365 * 86400;
 export const USDC_DECIMALS = 6;
 
-/** Project milestone gates, written by the oracle / admin. */
-export const GATES = [
-  { id: 0, code: "G0", title: "Sale / Disclosure Form signed" },
-  { id: 1, code: "G1", title: "Part I verified (capacity reserved)" },
-  { id: 2, code: "G2", title: "ICC Trade Date (REC contract path live)" },
-  { id: 3, code: "G3", title: "Permission to Operate + rebate filed" },
-  { id: 4, code: "G4", title: "Ameren rebate received (USDC in)" },
-  { id: 5, code: "G5", title: "Part II verified / Schedule B issued" },
-  { id: 6, code: "G6", title: "First REC payment received (USDC in)" },
-  { id: 7, code: "G7", title: "Takeout distributed to Project Shares" },
+/** Note lifecycle stages. Stages 3–7 are written by the oracle / admin. */
+export const STAGES = [
+  { id: 0, code: "S0", title: "Creator pays $20/kW application fee" },
+  { id: 1, code: "S1", title: "Reverse Dutch auction open (12% → 25% APR)" },
+  { id: 2, code: "S2", title: "Funded — clearing APR locked, 90–120 day lockup starts" },
+  { id: 3, code: "S3", title: "Built — installer paid $0.33/W (+ $0.02/W day-one)" },
+  { id: 4, code: "S4", title: "Ameren Permission to Operate, rebates filed" },
+  { id: 5, code: "S5", title: "Takeout landed — lenders repaid P+I, creator 3x cash" },
+  { id: 6, code: "S6", title: "PPA + REC tail streaming to Yield NFTs" },
+  { id: 7, code: "S7", title: "REC tail complete (24 quarters)" },
 ] as const;
+/** @deprecated alias kept for docs. */
+export const GATES = STAGES;
