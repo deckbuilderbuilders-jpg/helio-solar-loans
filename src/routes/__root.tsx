@@ -4,6 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -121,14 +123,29 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const isWelcome = pathname === "/welcome";
+
+  // First-time visitors to "/" see the splash once.
+  useEffect(() => {
+    if (pathname !== "/") return;
+    try {
+      if (!localStorage.getItem("helio.welcomed")) navigate({ to: "/welcome", replace: true });
+    } catch { /* ignore */ }
+  }, [pathname, navigate]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <HelioProvider>
-        <Shell>
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        {isWelcome ? (
           <Outlet />
-        </Shell>
+        ) : (
+          <Shell>
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </Shell>
+        )}
         <Toaster position="bottom-right" theme="dark" richColors closeButton />
       </HelioProvider>
     </QueryClientProvider>

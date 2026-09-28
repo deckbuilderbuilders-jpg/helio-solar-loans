@@ -8,3 +8,4 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- /welcome splash renders outside the app Shell (switched in __root by pathname); first visit to / redirects there once via localStorage "helio.welcomed". Why: splash must not restyle or wrap the app.
