@@ -22,18 +22,23 @@ export const AUCTION_HOURS = 72;
 export const LOCKUP_MIN_DAYS = 90;
 export const LOCKUP_MAX_DAYS = 120;
 
-/** Cost basis, per watt DC. Hardware from the 31-line BOM; labor is crew cost. */
-export const HARDWARE_COST_PER_W_DC = 0.8012;
+/** Cost basis, per watt DC. Hardware from the bill of materials; labor is crew cost. */
+export const HARDWARE_COST_PER_W_DC = 0.8;
 export const LABOR_COST_PER_W_DC = 0.35;
-export const INSTALL_COST_PER_W_DC = HARDWARE_COST_PER_W_DC + LABOR_COST_PER_W_DC;
+export const INSTALL_COST_PER_W_DC = HARDWARE_COST_PER_W_DC + LABOR_COST_PER_W_DC; // 1.15
 
 /** Takeout, per watt DC, for a ≤10 kW AC customer-owned Ameren roof. */
 export const AMEREN_REBATE_PER_W_DC = 0.3;
 export const FIRST_REC_PAYMENT_PER_W_DC = 0.845;
-export const TAKEOUT_PER_W_DC = AMEREN_REBATE_PER_W_DC + FIRST_REC_PAYMENT_PER_W_DC;
+export const TAKEOUT_PER_W_DC = AMEREN_REBATE_PER_W_DC + FIRST_REC_PAYMENT_PER_W_DC; // 1.145
 
-/** Advance rate: the note funds 85% of cost basis; the installer keeps skin in the game. */
-export const ADVANCE_RATE = 0.85;
+/**
+ * Advance rate on the solar line. With paired storage the Ameren battery rebate
+ * ($300/kWh against $250/kWh cost) covers interest, so the note funds the build
+ * in full; see economics.ts.
+ */
+export const ADVANCE_RATE = 1;
+
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
