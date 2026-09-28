@@ -20,8 +20,8 @@ import {
   BATTERY_REBATE_PER_KWH,
   CREATOR_CASH_MULTIPLE,
   CREATOR_YIELD_MULTIPLE,
-  CUSTOMER_BILL_REDUCTION,
   FIRST_REC_PER_W_DC,
+
   INSTALLER_BASE_PER_W_DC,
   INSTALLER_DAY_ONE_BONUS_PER_W_DC,
   INSTALLER_SHARE_OF_PROTOCOL_FEE,
@@ -33,7 +33,6 @@ import {
   TAIL_TO_HELIO,
   TAIL_TO_INSTALLER,
   TAIL_TO_YIELD,
-  batteryForSize,
   projectEconomics,
   yieldNftAnnualRate,
 } from "@/lib/helio/economics";
@@ -43,22 +42,23 @@ export const WELCOMED_KEY = "helio.welcomed";
 export const Route = createFileRoute("/welcome")({
   head: () => ({
     meta: [
-      { title: "HELIO — Free solar and batteries. Half the power bill." },
+      { title: "HELIO — Lend $1. Get $1+ back at PTO. Keep the six-year tail." },
       {
         name: "description",
         content:
-          "HELIO gives Illinois homeowners solar plus storage at zero cost and cuts their power bill in half. Lenders fund the 90–120 day build, get principal back from Ameren and Illinois Shines, and hold a Yield NFT on the customer payments and the six-year REC tail.",
+          "Fund Illinois solar and storage notes. Ameren rebates and the first Illinois Shines REC payment return principal plus interest in 90–120 days, and you keep a tradable Yield NFT on six years of quarterly cash.",
       },
-      { property: "og:title", content: "HELIO — Free solar. Half the bill. You fund the 90 days." },
+      { property: "og:title", content: "HELIO — Lend $1. Get $1+ back at PTO. Keep the tail." },
       {
         property: "og:description",
         content:
-          "Ameren and Illinois Shines repay the build in 90–120 days. Profit comes from customer payments and the six-year REC tail.",
+          "Principal back from utility and state checks in 90–120 days. Profit from a tradable Yield NFT on 24 REC quarters and customer payments.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+
   component: Welcome,
 });
 
@@ -185,14 +185,15 @@ function Welcome() {
       <section style={grid} className="border-b border-[var(--w-line)]">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:py-24">
           <Reveal>
-            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-70">Free to the homeowner · Funded by you</div>
+            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-70">
+              Senior secured bridge notes · {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} day lockup
+            </div>
             <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-              Free solar. Half<br />the <span className="text-[var(--w-orange)]">power bill.</span>
+              Lend $1. Get {usd(1 + periodYield(apr, LOCKUP_MIN_DAYS), 2)} back.<br />Keep the <span className="text-[var(--w-orange)]">six-year tail.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg opacity-80">
-              HELIO puts solar and a {batteryForSize(10)} kWh battery on an Illinois roof at zero cost to the homeowner and
-              cuts their Ameren bill in half. Illinois rebates and the first REC payment return your principal in{" "}
-              {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. Your profit comes after: customer payments plus six years of REC checks.
+              Ameren and Illinois Shines repay the note in {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. You keep a tradable
+              Yield NFT paying quarterly for six years.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={enter} className="h-12 rounded-md bg-[var(--w-orange)] px-6 font-semibold text-[var(--w-navy)] hover:opacity-90">
@@ -204,8 +205,8 @@ function Welcome() {
             </div>
             <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--w-line)] pt-5 text-sm">
               {[
-                [pct(CUSTOMER_BILL_REDUCTION, 0), "Customer bill cut"],
-                [`${flagship.takeoutCoverage.toFixed(2)}×`, "Day-90 cash on build cost"],
+                [`${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS}d`, "To full principal return"],
+                [`${flagship.takeoutCoverage.toFixed(2)}×`, "Contracted takeout cover"],
                 [pct(yieldNftAnnualRate(flagship)), "Tail yield, per year"],
               ].map(([v, l]) => (
                 <div key={l}>
@@ -215,6 +216,7 @@ function Welcome() {
               ))}
             </dl>
           </Reveal>
+
           <Reveal>
             <div className="relative">
               <img src={roof} alt="Solar panels on an Illinois home roof" width={1280} height={896} className="aspect-[4/3] w-full rounded-lg border border-[var(--w-navy)] object-cover" />
@@ -240,31 +242,33 @@ function Welcome() {
         <div className="mx-auto grid max-w-6xl gap-4 px-6 py-16 md:grid-cols-2">
           <Reveal>
             <div className="h-full rounded-lg border border-[var(--w-navy)] p-7">
-              <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">The homeowner</div>
-              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">Nothing down. Half the bill. Lights stay on.</h2>
+              <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">Leg one · Capital return</div>
+              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">Your $1 comes back from a utility check.</h2>
               <p className="mt-4 opacity-80">
-                Solar alone will not halve an Illinois bill, because taking the rebate moves the house to supply and
-                transmission credit only. Pairing {batteryForSize(10)} kWh of storage keeps the day's generation on site for
-                the evening, so the meter barely runs. The customer signs an energy agreement at about{" "}
-                {usd(flagship.ppaMonthly)} a month — roughly half of what Ameren was charging — and owns the system, which is
-                what earns the customer-owned REC adder.
+                Repayment is not a borrower promise. It is the Ameren DG rebate, the Ameren paired-storage rebate and the
+                Illinois Shines first REC payment — {usd(flagship.takeout)} of contracted cash against a{" "}
+                {usd(flagship.buildCost)} build. No price oracle, no margin call, no rollover.
+              </p>
+              <p className="mt-4 font-mono text-xs uppercase tracking-widest opacity-60">
+                {usd(10000)} lent → {usd(10000 * (1 + periodYield(apr, LOCKUP_MIN_DAYS)))} at takeout
               </p>
             </div>
           </Reveal>
           <Reveal>
             <div className="h-full rounded-lg border-2 border-[var(--w-orange)] bg-[var(--w-navy)] p-7 text-[var(--w-cream)]">
-              <div className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--w-orange)]">The lender</div>
-              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">Principal back at PTO. Profit after.</h2>
+              <div className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--w-orange)]">Leg two · The tail</div>
+              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">The profit keeps paying after you are repaid.</h2>
               <p className="mt-4 opacity-80">
-                Two legs. The note is repaid from Ameren and Illinois Shines in {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. The
-                Yield NFT you keep streams {pct(TAIL_TO_YIELD, 0)} of the customer payments and the remaining half of the
-                15-year REC contract, paid over {TAIL_QUARTERS} quarters — and it can be sold at any time.
+                Every note mints a Yield NFT holding {pct(TAIL_TO_YIELD, 0)} of the customer's{" "}
+                {usd(flagship.ppaMonthly)} monthly payment and the remaining half of the 15-year REC contract, paid over{" "}
+                {TAIL_QUARTERS} quarters. Hold it for the cash or sell it outright.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
-                {usd(flagship.buildCost)} built → {usd(flagship.takeout)} day-90 cash → {usd(flagship.tailToYieldAnnual)}/yr tail
+                {usd(flagship.tailToYieldAnnual)}/yr per 10 kW roof · {pct(yieldNftAnnualRate(flagship))} a year on capital lent
               </p>
             </div>
           </Reveal>
+
         </div>
       </section>
 
