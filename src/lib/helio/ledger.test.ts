@@ -44,7 +44,7 @@ describe("bridge note lifecycle", () => {
     s = recordTail(s, DEMO.admin, id, 1_000, NOW + 100 * D);
     const nft = s.nfts.find((x) => x.owner === DEMO.whale)!;
     const r = claimNft(s, DEMO.whale, nft.id, NOW + 101 * D);
-    expect(r.amount).toBeCloseTo(650 * 20_000 / (27_500 + 400), 2);
+    expect(r.amount).toBeCloseTo(650 * 36_000 / (36_000 + 10_500 + 400), 2);
   });
 
   it("charges 2.5% on pre-fill withdrawals", () => {
