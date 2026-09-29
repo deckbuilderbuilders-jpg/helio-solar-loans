@@ -125,7 +125,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const isWelcome = pathname === "/welcome";
+  const isWelcome = pathname === "/welcome" || pathname === "/solar";
 
   // First-time visitors to "/" see the splash once.
   useEffect(() => {
