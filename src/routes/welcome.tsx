@@ -34,7 +34,7 @@ import {
   TAIL_TO_INSTALLER,
   TAIL_TO_YIELD,
   projectEconomics,
-  yieldNftAnnualRate,
+  yieldNftTotalPerDollar,
 } from "@/lib/helio/economics";
 
 export const WELCOMED_KEY = "helio.welcomed";
@@ -42,17 +42,17 @@ export const WELCOMED_KEY = "helio.welcomed";
 export const Route = createFileRoute("/welcome")({
   head: () => ({
     meta: [
-      { title: "HELIO — Lend $1. Get $1+ back at PTO. Keep the six-year tail." },
+      { title: "HELIO — Fund Solar. Earn Yield." },
       {
         name: "description",
         content:
-          "Fund Illinois solar and storage notes. Ameren rebates and the first Illinois Shines REC payment return principal plus interest in 90–120 days, and you keep a tradable Yield NFT on six years of quarterly cash.",
+          "Lend USDC into Illinois solar. Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six years.",
       },
-      { property: "og:title", content: "HELIO — Lend $1. Get $1+ back at PTO. Keep the tail." },
+      { property: "og:title", content: "HELIO — Fund Solar. Earn Yield." },
       {
         property: "og:description",
         content:
-          "Principal back from utility and state checks in 90–120 days. Profit from a tradable Yield NFT on 24 REC quarters and customer payments.",
+          "Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six years.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -189,11 +189,11 @@ function Welcome() {
               Senior secured bridge notes · {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} day lockup
             </div>
             <h1 className="mt-4 font-display text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-              Lend $1. Get {usd(1 + periodYield(apr, LOCKUP_MIN_DAYS), 2)} back.<br />Keep the <span className="text-[var(--w-orange)]">six-year tail.</span>
+              Fund Solar. <span className="text-[var(--w-orange)]">Earn Yield.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg opacity-80">
-              Ameren and Illinois Shines repay the note in {LOCKUP_MIN_DAYS}–{LOCKUP_MAX_DAYS} days. You keep a tradable
-              Yield NFT paying quarterly for six years.
+              Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six
+              years.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={enter} className="h-12 rounded-md bg-[var(--w-orange)] px-6 font-semibold text-[var(--w-navy)] hover:opacity-90">
@@ -207,7 +207,7 @@ function Welcome() {
               {[
                 [`${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS}d`, "To full principal return"],
                 [`${flagship.takeoutCoverage.toFixed(2)}×`, "Contracted takeout cover"],
-                [pct(yieldNftAnnualRate(flagship)), "Tail yield, per year"],
+                [`$${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)}`, "Value of $1 lent, end of the six-year tail"],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="font-display text-xl font-bold">{v}</dt>
@@ -264,7 +264,7 @@ function Welcome() {
                 contract, paid over {TAIL_QUARTERS} quarters. Hold it for the cash or sell it outright.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
-                {usd(flagship.tailToYieldAnnual)}/yr per 10 kW roof · {pct(yieldNftAnnualRate(flagship))} a year on capital lent
+                $1 lent is worth ${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)} once the {TAIL_QUARTERS}th REC quarter pays.
               </p>
             </div>
           </Reveal>
@@ -311,8 +311,8 @@ function Welcome() {
                 ))}
               </div>
               <p className="mt-5 text-sm opacity-70">
-                Plus a Yield NFT on {pct(TAIL_TO_YIELD, 0)} of the tail: about{" "}
-                {usd(lend * yieldNftAnnualRate(flagship))} a year per {usd(lend)} lent, for as long as you hold it.
+                Plus a Yield NFT on {pct(TAIL_TO_YIELD, 0)} of the tail: every $1 lent is worth{" "}
+                ${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)} once the last REC quarter pays.
               </p>
             </div>
           </Reveal>

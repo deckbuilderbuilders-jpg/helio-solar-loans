@@ -202,3 +202,8 @@ export function prebondWithdrawal(amount: number) {
 export function yieldNftAnnualRate(e: ProjectEconomics): number {
   return e.tailToYieldAnnual / e.buildCost;
 }
+
+/** Cumulative Yield NFT cash per dollar of note principal by the end of the 24-quarter tail. */
+export function yieldNftTotalPerDollar(e: ProjectEconomics): number {
+  return (e.tailToYieldAnnual * (TAIL_QUARTERS / 4)) / e.buildCost;
+}
