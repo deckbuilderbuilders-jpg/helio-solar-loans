@@ -164,9 +164,9 @@ function SolarSplash() {
           height={1088}
           className="h-[92vh] min-h-[560px] w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--w-navy)]/70 via-[var(--w-navy)]/10 to-transparent" />
+        <div className="absolute inset-0 bg-white/50" />
         <div className="absolute inset-x-0 bottom-0">
-          <div className="mx-auto max-w-6xl px-6 pb-14 text-[var(--w-cream)]">
+          <div className="mx-auto max-w-6xl px-6 pb-14 text-[var(--w-navy)]">
             <div className="flex items-center gap-2 text-sm font-medium">
               <span className="text-[var(--w-orange)]">★★★★★</span>
               <span>4.9 from Illinois homeowners</span>
