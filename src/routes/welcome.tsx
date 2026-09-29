@@ -166,9 +166,14 @@ function Welcome() {
               Illinois solar + storage notes
             </span>
           </div>
-          <button onClick={enter} className="rounded-full bg-[var(--w-navy)] px-5 py-2 text-sm font-medium text-[var(--w-cream)] hover:opacity-90">
-            Enter app
-          </button>
+          <div className="flex items-center gap-3">
+            <Link to="/solar" className="hidden rounded-full border border-[var(--w-line)] px-4 py-2 text-sm font-medium hover:bg-[var(--w-navy)] hover:text-[var(--w-cream)] sm:inline">
+              For homeowners
+            </Link>
+            <button onClick={enter} className="rounded-full bg-[var(--w-navy)] px-5 py-2 text-sm font-medium text-[var(--w-cream)] hover:opacity-90">
+              Enter app
+            </button>
+          </div>
         </div>
       </header>
 
