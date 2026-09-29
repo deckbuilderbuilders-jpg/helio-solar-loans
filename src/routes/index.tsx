@@ -43,13 +43,12 @@ function Landing() {
         <div className="space-y-6">
           <div className="hazard h-1.5 w-28" />
           <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-            Illinois pays for the roof.
+            Fund the Future.
             <br />
-            <span className="text-volt">You bridge the 90 days.</span>
+            <span className="text-volt">Earn Yield.</span>
           </h1>
           <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-            Lend USDC into a single roof's build. Ameren and Illinois Shines repay you in 90–120 days. Your Yield NFT keeps paying from the REC tail for six
-            years.
+            Lend USDC into a solar project. The utility companies repay you in 90–120 days. Earn yield for 6 years.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild variant="volt" size="lg">
