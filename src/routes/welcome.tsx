@@ -34,7 +34,6 @@ import {
   TAIL_TO_INSTALLER,
   TAIL_TO_YIELD,
   projectEconomics,
-  yieldNftAnnualRate,
   yieldNftTotalPerDollar,
 } from "@/lib/helio/economics";
 
