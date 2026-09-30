@@ -89,11 +89,16 @@ collateral = 5% of contract, held by the program`}
         </p>
       </Block>
 
-      <Block title="HELIO Points">
+      <Block title="WATTS points">
         <p>
           Early lenders earn more points: {POINTS_START}x per dollar when the note is empty, falling linearly to {POINTS_END}x when it's full. Points carry
           no cash value in this version. Before a note fills, lenders can withdraw for a 2.5% fee (1.5% to lenders who stay, 1.0% to the protocol) and
           give up points in proportion.
+        </p>
+        <p className="mt-2">
+          WATTS run in 90-day seasons with a fixed emission (Season 0: 100M). Pools: 55% completion (notes that repay), 20% capital (USDC × days × fill ×
+          hold), 15% origination, 7% installer, 3% referral. Exiting before fill earns 0.25x; holding to repayment 1x; rolling within 14 days 1.15x. See the
+          WATTS page for live pool totals.
         </p>
       </Block>
 

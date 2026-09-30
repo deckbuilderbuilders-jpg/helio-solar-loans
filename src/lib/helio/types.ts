@@ -57,6 +57,10 @@ export interface HelioNote {
   installerEarned: number;
   helioEarned: number;
   collateralReleased: boolean;
+  /** Pre-fill exits, kept for the WATTS capital pool (0.25x hold). */
+  exits?: { who: Address; amount: number; mfill: number; days: number }[];
+  /** Takeout timestamp (sec). */
+  repaidAt?: number | null;
   createdAt: number;
 }
 
