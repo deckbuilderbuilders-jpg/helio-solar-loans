@@ -92,7 +92,7 @@ The $20/kW application fee, creator reward, 2.5% withdrawal fee before the note 
 ## App changes
 
 - **Economics:** add the REC engine (quantity, price lookup, adders, payment schedule), the factoring constants, the `aprForCoverage()` function, the points multiplier and the new payout order. The fixed $0.845/W REC figures are replaced by the engine.
-- **Oracle / originate:** the form for creating a project gets inputs for AC size, capacity factor, Group, adders and the Part I and Part II estimates. It shows a live preview of the REC contract, coverage and APR, and blocks projects under 1.12 coverage.
+- **Originate:** a new "Import application" flow: upload the document, let the AI fill in the fields, review them against a live preview of the REC contract, coverage and APR, then create the note. Projects under 1.12 coverage are blocked. The fields can also be entered by hand.
 - **Note records:** store the REC inputs, contract value, coverage, APR, factor proceeds, points and deposit timestamps. Remove the Yield NFT and tail fields.
 - **Ledger:** record the factoring sale together with the takeout. Remove the actions for recording tail payments and claiming NFT cash.
 - **Pages:**
