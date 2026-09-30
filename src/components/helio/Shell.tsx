@@ -15,9 +15,9 @@ import { useHelio } from "@/lib/helio/store";
 import { usdc } from "./ui";
 
 const nav = [
-  { to: "/projects", label: "Auctions" },
+  { to: "/projects", label: "Notes" },
   { to: "/portfolio", label: "Portfolio" },
-  { to: "/originate", label: "Create" },
+  { to: "/originate", label: "Import" },
   { to: "/oracle", label: "Oracle" },
   { to: "/docs", label: "Docs" },
 ] as const;
