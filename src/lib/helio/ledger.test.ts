@@ -110,8 +110,9 @@ describe("note lifecycle", () => {
 
   it("seeds without throwing", () => {
     const s = seedState(NOW);
-    expect(s.notes).toHaveLength(4);
-    const aprs = new Set(s.notes.map((n) => n.apr.toFixed(3)));
-    expect(aprs.size).toBeGreaterThan(2);
+    expect(s.notes).toHaveLength(1);
+    const e = econOf(s.notes[0]!);
+    expect(e.rec.quantity).toBe(552);
+    expect(e.rec.price).toBeCloseTo(80.92, 2);
   });
 });
