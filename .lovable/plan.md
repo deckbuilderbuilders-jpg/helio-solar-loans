@@ -1,4 +1,24 @@
-# Factor the REC tail, set each project's APR from its REC value, and reward early lenders with points
+# Factor the REC tail, set each project's APR from its REC value, reward early lenders with points, and import applications
+
+## Application import (new)
+
+Every input that sets the REC value is already on the Illinois Shines application. Creating a project starts from that document:
+
+1. **Upload** the application: a PDF, a photo or screenshot, or a CSV/JSON export.
+2. **Extract.** An AI reads the document and fills in a structured form:
+   - applicant and site address
+   - utility, and therefore Group A or B
+   - category (Small DG or Large DG)
+   - DC and AC size
+   - approved capacity factor
+   - Part I and Part II REC quantities
+   - adders (customer-owned, EEC)
+   - battery kWh
+   - program year
+3. **Review.** Each field shows what was read from the document. Anything the AI isn't sure about is highlighted, and the creator can correct any field. The live preview shows the REC contract, coverage and APR.
+4. **Create the note.** The confirmed fields become the note's recorded version. A fingerprint of the uploaded file is saved with the note so anyone can check the note against the original application.
+
+If a document can't be read, the same form can be filled in by hand.
 
 ## The deal
 
@@ -72,7 +92,7 @@ The $20/kW application fee, creator reward, 2.5% withdrawal fee before the note 
 ## App changes
 
 - **Economics:** add the REC engine (quantity, price lookup, adders, payment schedule), the factoring constants, the `aprForCoverage()` function, the points multiplier and the new payout order. The fixed $0.845/W REC figures are replaced by the engine.
-- **Oracle / originate:** the form for creating a project gets inputs for AC size, capacity factor, Group, adders and the Part I and Part II estimates. It shows a live preview of the REC contract, coverage and APR, and blocks projects under 1.12 coverage.
+- **Originate:** a new "Import application" flow: upload the document, let the AI fill in the fields, review them against a live preview of the REC contract, coverage and APR, then create the note. Projects under 1.12 coverage are blocked. The fields can also be entered by hand.
 - **Note records:** store the REC inputs, contract value, coverage, APR, factor proceeds, points and deposit timestamps. Remove the Yield NFT and tail fields.
 - **Ledger:** record the factoring sale together with the takeout. Remove the actions for recording tail payments and claiming NFT cash.
 - **Pages:**
