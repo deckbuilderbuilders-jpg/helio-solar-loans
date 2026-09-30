@@ -1,4 +1,24 @@
-# Factor the REC tail, set each project's APR from its REC value, and reward early lenders with points
+# Factor the REC tail, set each project's APR from its REC value, reward early lenders with points, and import applications
+
+## Application import (new)
+
+Every input that sets the REC value is already on the Illinois Shines application. Creating a project starts from that document:
+
+1. **Upload** the application: a PDF, a photo or screenshot, or a CSV/JSON export.
+2. **Extract.** An AI reads the document and fills in a structured form:
+   - applicant and site address
+   - utility, and therefore Group A or B
+   - category (Small DG or Large DG)
+   - DC and AC size
+   - approved capacity factor
+   - Part I and Part II REC quantities
+   - adders (customer-owned, EEC)
+   - battery kWh
+   - program year
+3. **Review.** Each field shows what was read from the document. Anything the AI isn't sure about is highlighted, and the creator can correct any field. The live preview shows the REC contract, coverage and APR.
+4. **Create the note.** The confirmed fields become the note's recorded version. A fingerprint of the uploaded file is saved with the note so anyone can check the note against the original application.
+
+If a document can't be read, the same form can be filled in by hand.
 
 ## The deal
 
