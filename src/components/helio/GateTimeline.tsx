@@ -20,7 +20,7 @@ export function StageTimeline({ stage, failed, compact }: { stage: Stage; failed
   return (
     <ol className="relative">
       {STAGES.map((g, i) => {
-        const done = g.id < stage || (stage === 7 && g.id === 7);
+        const done = g.id < stage || (stage === 6 && g.id === 6);
         const current = g.id === stage && !done;
         return (
           <li key={g.id} className="relative flex gap-4 pb-5 last:pb-0">
