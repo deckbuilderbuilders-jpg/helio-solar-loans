@@ -1,22 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SectionHead } from "@/components/helio/ui";
-import {
-  AMEREN_BATTERY_REBATE_PER_KWH,
-  AMEREN_SOLAR_REBATE_PER_KW_DC,
-  CAPACITY_FACTOR,
-  GATES,
-  GROUP_A_DG_REC_PRICES,
-} from "@/lib/helio/constants";
-import { APR_CAP, APR_FLOOR, AUCTION_HOURS } from "@/lib/helio/auction";
-import { APPLICATION_FEE_PER_KW, CREATOR_CASH_MULTIPLE, CREATOR_YIELD_MULTIPLE, TAIL_PROTOCOL_FEE, TAIL_TO_HELIO, TAIL_TO_INSTALLER, TAIL_TO_YIELD } from "@/lib/helio/economics";
+import { GATES } from "@/lib/helio/constants";
+import { POINTS_END, POINTS_START } from "@/lib/helio/auction";
+import { APPLICATION_FEE_PER_KW, APR_MAX, APR_MIN, COVERAGE_FULL, COVERAGE_MIN, CREATOR_TOTAL_MULTIPLE, FACTOR_ADVANCE, projectEconomics } from "@/lib/helio/economics";
+import { DG_REC_PRICES } from "@/lib/helio/rec";
 
 export const Route = createFileRoute("/docs")({
   head: () => ({
     meta: [
       { title: "Protocol docs — HELIO" },
-      { name: "description", content: "How HELIO bridge notes, the APR auction, takeout and Yield NFTs work, plus the Illinois Shines 2026–27 and Ameren rebate sources behind every number." },
+      { name: "description", content: "How HELIO prices bridge notes from Illinois Shines REC value, factors the REC tail, and repays lenders in 90–120 days — with every source." },
       { property: "og:title", content: "Protocol docs — HELIO" },
-      { property: "og:description", content: "Bridge notes, auction, takeout and Yield NFTs." },
+      { property: "og:description", content: "REC engine, APR function, factoring, points and the takeout waterfall." },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,92 +20,87 @@ export const Route = createFileRoute("/docs")({
 });
 
 function Docs() {
+  const ex = projectEconomics(10);
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <div className="space-y-3">
         <div className="hazard h-1.5 w-24" />
         <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">Protocol</h1>
         <p className="text-muted-foreground">
-          HELIO runs fixed-term USDC bridge notes on Illinois solar + storage roofs. Lenders fund the build; Ameren rebates and the first Illinois Shines REC
-          payment repay them in 90–120 days. The customer signs a PPA, owns the equipment, and pays about half their old bill.
+          HELIO runs fixed-term USDC bridge notes on Illinois solar + storage roofs. Lenders fund the build at {APR_MIN * 100}–{APR_MAX * 100}% APR. In 90–120
+          days the Ameren rebates, the first Illinois Shines REC payment and the sale of the remaining REC contract repay them in one payment. The
+          customer signs a PPA, owns the equipment, and pays about half their old bill; those payments go to HELIO for maintenance.
         </p>
       </div>
 
-      <Block title="Creating a roof">
+      <Block title="Creating a note">
         <p>
-          Anyone can open a note by paying the ${APPLICATION_FEE_PER_KW}/kW Illinois Shines application fee. It is the only money at risk: if the auction never
-          fills, the fee is lost and lenders are refunded in full. If it fills, the creator gets {CREATOR_CASH_MULTIPLE}x the fee in cash at takeout and a
-          Yield NFT weighted at {CREATOR_YIELD_MULTIPLE}x the fee.
-        </p>
-      </Block>
-
-      <Block title="Reverse Dutch auction">
-        <p>
-          APR opens at {APR_FLOOR * 100}% and climbs linearly to a {APR_CAP * 100}% cap over {AUCTION_HOURS} hours. The dollar that fills the note sets the
-          clearing APR for every lender. Before it fills, lenders can withdraw for a 2.5% fee: 1.5% to lenders who stay, 1.0% to the protocol.
-        </p>
-      </Block>
-
-      <Block title="Build and takeout">
-        <pre className="overflow-x-auto rounded-sm bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
-{`note     = kW_dc × $1.15/W  +  kWh × ($225 + $25)
-takeout  = kW_dc × $300  +  kWh × $300  +  first 50% REC ($0.845/W)
-waterfall: lenders principal + interest → creator 3x cash → HELIO`}
-        </pre>
-        <p>Installers earn $0.33/W at build, plus $0.02/W when the install is finished in one day.</p>
-      </Block>
-
-      <Block title="Yield NFTs and the tail">
-        <p>
-          When a note fills, each lender gets a Yield NFT weighted by principal × an early-funder multiplier: 1.8x at auction open, falling linearly to 1x as APR climbs to the cap. Early money earns more tail; late money earns a higher locked APR. The remaining 50% REC contract (24 quarters) splits{" "}
-          {TAIL_TO_YIELD * 100}% to Yield NFTs and a {TAIL_PROTOCOL_FEE * 100}% protocol fee, of which 20% goes to the installer
-          ({(TAIL_TO_INSTALLER * 100).toFixed(0)}% of tail) and {(TAIL_TO_HELIO * 100).toFixed(0)}% to HELIO. Yield NFTs trade on the market; unclaimed cash
-          moves with the NFT.
-        </p>
-      </Block>
-
-      <Block title="REC collateral (5%)">
-        <p>
-          Illinois Shines holds 5% of the full 15-year REC contract as collateral ($845 on a 10 kW roof). HELIO underwrites on the cash that
-          actually lands. Payout order at takeout: lenders' principal + locked interest first, then the creator's 3x cash, then HELIO. If a note
-          clears near the cap and runs 120 days, the unpaid creator cash is caught up from the first REC-tail quarters before Yield NFTs are paid.
-          When the state releases the collateral, 100% goes to Yield NFT holders.
+          Every input that sets the REC value is on the Illinois Shines application. The creator uploads it; HELIO reads the size, capacity factor,
+          utility group, adders and Part I / Part II quantities, the creator checks them, and the note is recorded with a SHA-256 fingerprint of the file.
+          The ${APPLICATION_FEE_PER_KW}/kW application fee is the only money at risk: if the note never fills, it's lost and lenders are refunded in full. If
+          it fills, the creator gets {CREATOR_TOTAL_MULTIPLE}x the fee in cash at takeout.
         </p>
       </Block>
 
       <Block title="REC engine">
-        <p>
-          Nameplate is kW AC. Year-1 RECs = kW AC × {(CAPACITY_FACTOR * 100).toFixed(2)}% capacity factor × 8,760 h ÷ 1,000. The 15-year total sums
-          year-1 output degraded 0.5% annually and is rounded down to whole RECs. REC Purchase Amount = total RECs × effective price. Small DG (≤25 kW AC)
-          receives 50% at Energization/Part II; Large DG receives 15%.
-        </p>
+        <pre className="overflow-x-auto rounded-sm bg-surface p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">
+{`year-1 MWh = kW-AC × CF × 8,760 / 1,000
+quantity   = floor(Σ 15 yrs, −0.5%/yr)  or lesser of Part I / Part II
+$/REC      = 2026–27 DG table (Group A/B, AC size bin) + adders
+contract   = quantity × $/REC
+first pay  = 50% Small DG (≤25 kW AC) / 15% Large DG, at energization
+collateral = 5% of contract, held by the program`}
+        </pre>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-              <th className="py-2 font-normal">Group A DG tier</th>
-              <th className="py-2 text-right font-normal">$/REC</th>
+              <th className="py-2 font-normal">DG tier (AC)</th>
+              <th className="py-2 text-right font-normal">Group A $/REC</th>
+              <th className="py-2 text-right font-normal">Group B $/REC</th>
             </tr>
           </thead>
           <tbody>
-            {GROUP_A_DG_REC_PRICES.map((t) => (
+            {DG_REC_PRICES.map((t) => (
               <tr key={t.label} className="border-b border-border/60">
                 <td className="py-1.5">{t.label}</td>
-                <td className="num py-1.5 text-right">${t.price.toFixed(2)}</td>
+                <td className="num py-1.5 text-right">${t.A.toFixed(2)}</td>
+                <td className="num py-1.5 text-right">${t.B.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <p>Adders: customer-owned Small DG +$20/REC (no federal credit), Equity Eligible Contractor +$5/REC. Group A = Ameren / MISO; Group B = ComEd / PJM.</p>
+      </Block>
+
+      <Block title="Factoring the REC tail">
         <p>
-          Stacked adders: customer-owned Small DG +$20/REC (no federal ITC), Equity Eligible Contractor +$5/REC. A 0–10 kW customer-owned EEC job prices
-          at $95.37/REC.
+          The Ameren rebates are fixed ($300/kW-DC and $300/kWh storage). The REC contract depends on production. At energization HELIO sells the
+          remaining REC contract for {FACTOR_ADVANCE * 100}% of face, so every dollar lands in one window. On a default 10 kW / 64 kWh Ameren roof: build{" "}
+          ${Math.round(ex.buildCost).toLocaleString()}, cash ${Math.round(ex.totalCash).toLocaleString()} ({ex.coverage.toFixed(2)}x).
         </p>
       </Block>
 
-      <Block title="Ameren rebates">
+      <Block title="APR from coverage">
         <p>
-          ${AMEREN_SOLAR_REBATE_PER_KW_DC}/kW-DC on DS-1 and DS-2 generation, plus ${AMEREN_BATTERY_REBATE_PER_KWH}/kWh for storage only when paired with
-          qualifying solar. Rebates arrive roughly 60 days after Permission to Operate. Electing the generation rebate moves the site to supply +
-          transmission-only net metering — HELIO never models bill savings at full retail.
+          Coverage = (rebates + first REC − collateral + factored tail) ÷ build. The thinner the cushion, the riskier the loan and the higher the rate:{" "}
+          {APR_MAX * 100}% at {COVERAGE_MIN.toFixed(2)}x, falling linearly to {APR_MIN * 100}% at {COVERAGE_FULL.toFixed(2)}x and above. Below{" "}
+          {COVERAGE_MIN.toFixed(2)}x a roof can't be listed — that floor keeps lenders whole at 24% for the full 120 days with the creator's cash still
+          covered. The APR is fixed at creation; every lender in the note earns it, from the day their deposit lands.
+        </p>
+      </Block>
+
+      <Block title="HELIO Points">
+        <p>
+          Early lenders earn more points: {POINTS_START}x per dollar when the note is empty, falling linearly to {POINTS_END}x when it's full. Points carry
+          no cash value in this version. Before a note fills, lenders can withdraw for a 2.5% fee (1.5% to lenders who stay, 1.0% to the protocol) and
+          give up points in proportion.
+        </p>
+      </Block>
+
+      <Block title="Payout order at takeout">
+        <p>
+          Lenders principal + interest → creator {CREATOR_TOTAL_MULTIPLE}x cash → installer 7% of the factored proceeds → HELIO. Installers also earn
+          $0.33/W at build plus $0.02/W for a one-day install. The 5% REC collateral is released to HELIO later.
         </p>
       </Block>
 
@@ -127,16 +117,15 @@ waterfall: lenders principal + interest → creator 3x cash → HELIO`}
 
       <Block title="Sources">
         <ul className="space-y-1.5">
-          <li>· Illinois Shines / Adjustable Block Program 2026–27 Program Guidebook — Group A Distributed Generation REC price tables and adders.</li>
-          <li>· Illinois Shines 2026–27 REC contract terms — 15-year delivery, 50% Small DG / 15% Large DG first payment, remainder over 24 quarters.</li>
-          <li>· Ameren Illinois distributed generation rebate tariff — $300/kW-DC (DS-1, DS-2), $300/kWh paired storage, ~60-day payment after PTO.</li>
-          <li>· Ameren Illinois net metering provisions for rebate-electing customers — supply + transmission-only credit.</li>
+          <li>· Illinois Shines / Adjustable Block Program 2026–27 Program Guidebook and Final 2026–27 REC Prices.</li>
+          <li>· 2026 REC Delivery Contract — Small DG 50% at energization, Large DG 15%, remainder ratably over 6 years; 5% collateral.</li>
+          <li>· Ameren Illinois DG rebate tariff — $300/kW-DC, $300/kWh paired storage, ~60 days after PTO.</li>
+          <li>· Factoring advance (65% of face) is HELIO's working assumption, not a quoted rate.</li>
         </ul>
       </Block>
 
       <Block title="Exclusions">
         <ul className="space-y-1.5">
-          <li>· No mid-project liquidations and no price oracles — takeout is a tariffed rebate plus a utility REC invoice.</li>
           <li>· Taking the Ameren rebate moves the customer to supply + transmission-only net metering; storage is what gets the bill to 50%.</li>
           <li>· Devnet demonstration figures. Nothing here is an offer of securities or a guarantee of program payments.</li>
         </ul>
