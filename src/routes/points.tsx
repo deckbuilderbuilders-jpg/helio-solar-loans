@@ -69,7 +69,7 @@ function Points() {
           {pools.map((p) => (
             <div key={p} className="grid gap-2 px-4 py-3 text-sm md:grid-cols-[140px_90px_1fr_220px] md:items-center">
               <span className="font-medium">{POOL_LABEL[p]}</span>
-              <span className="num text-volt">{POOLS[p] * 100}%</span>
+              <span className="num text-volt">{Math.round(POOLS[p] * 100)}%</span>
               <span className="text-muted-foreground">{POOL_NOTE[p]}</span>
               <span className="num text-right text-xs text-muted-foreground">
                 {fmtWatts(sw.distributed[p])} / {fmtWatts(sw.poolSize[p])}
