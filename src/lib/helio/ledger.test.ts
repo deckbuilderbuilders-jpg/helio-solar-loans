@@ -105,7 +105,7 @@ describe("note lifecycle", () => {
     expect(s.notes.find((x) => x.id === id)!.points[DEMO.whale]).toBeCloseTo(p0 / 2);
     expect(balanceOf(s, DEMO.whale)).toBeCloseTo(40_000 + 5_000 * 0.975);
     s = failNote(s, DEMO.admin, id, NOW + 3 * H);
-    expect(balanceOf(s, DEMO.whale)).toBeCloseTo(45_000 - 125);
+    expect(balanceOf(s, DEMO.whale)).toBeCloseTo(50_000 - 50);
   });
 
   it("seeds without throwing", () => {

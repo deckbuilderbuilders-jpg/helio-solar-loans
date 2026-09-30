@@ -248,7 +248,7 @@ function Create() {
   );
 }
 
-function Field({ label, tag, children }: { label: string; tag?: string; children: React.ReactNode }) {
+function Field({ label, tag, children }: { label: string; tag?: string | undefined; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <Label className="flex justify-between text-xs text-muted-foreground">
