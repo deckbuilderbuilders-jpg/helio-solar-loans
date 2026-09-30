@@ -1,8 +1,8 @@
-# Factor the REC tail: cash up front, 24–25% all-in APR
+# Factor the REC tail, pay a flat 24% APR, and reward early lenders with points
 
 ## The deal
 
-The six-year Yield NFT goes away. When the first Illinois Shines payment arrives (at energization / Part II), HELIO also sells the remaining 50% of the REC contract to a factor for **65% of its face value**. All cash now lands in one window, around day 90–120, and lenders are paid out in full at that point. Nothing is left waiting on a six-year payment stream.
+The six-year Yield NFT goes away. When the first Illinois Shines payment arrives, HELIO sells the remaining 50% of the REC contract for **65% of its face value**. All the cash lands around day 90–120, and lenders are paid out in full then.
 
 10 kW + 64 kWh roof:
 
@@ -13,55 +13,49 @@ Factored tail  ($8,450 face × 65%)       + $5,493
 Cash at day 90–120                       $35,298   (1.28x of build)
 ```
 
-## How lenders earn 24–25% (the recommended structure)
+## What lenders get
 
-Lenders earn two things, both paid in cash at takeout:
+1. **Flat 24% APR, the same for every lender.** Interest starts the moment a deposit lands, so money that waits for the note to fill still earns. There is no rising-rate auction. Notes fill first come, first served.
+   - The pitch becomes: "$1 in, ~$1.08 back in 120 days. 24% APR in USDC."
+2. **HELIO Points for filling early.** The points multiplier depends on **how full the note is**, not on the clock: **2x** at 0% filled, dropping steadily to **1x** at 100% filled.
+   - Points = dollars deposited × the multiplier over that part of the fill.
+   - Points carry no cash promise in this version. They are a loyalty and future-rewards balance, shown on each note and in the portfolio.
+   - Early lenders earn more points. Every lender gets the same interest rate.
 
-1. **Locked auction APR.** The rate rises over 72 hours from **15% to a 20% cap**. It used to be 12% to 25%. Each deposit keeps the rate that was live when it came in, as it does today.
-2. **Factor Bonus.** This is paid from the factored tail. It works out to **5% APR per 1x of weight**. Weight still falls from 1.8x to 1x over the same 72 hours.
+Lenders are well covered. At the full 120 days, lenders are owed $27,500 plus $2,170 in interest, and $35,298 comes in. That leaves a buffer of about $5.6k.
 
-```text
-First dollar in:  15% + 1.8 × 5% = 24% all-in
-Last dollar in:   20% + 1.0 × 5% = 25% all-in
-```
+## Payout order at takeout
 
-Every lender lands between 24% and 25% whenever they come in. Timing still involves a trade-off: early lenders get more bonus, and late lenders get a higher rate. The headline for funders becomes: **"$1 in, ~$1.08 back in 120 days. 24–25% APR, paid in USDC."**
+1. Lenders: principal plus 24% interest for the actual days held
+2. Creator: 3x cash ($600). The 2x yield credit becomes an extra **2x cash** ($400), because there is no longer an NFT. The creator's reward stays at 5x.
+3. Installer: the base and day-one bonus are unchanged. The installer's share becomes **7% of the factored proceeds** ($385).
+4. HELIO keeps the rest, about $4.6k on the example roof. The 5% collateral ($845) is released to HELIO later, by a manual admin action. The customer's monthly payments still go 100% to HELIO.
 
-Why this appeals to stablecoin investors: returns are in the low-to-mid 20s, the money is locked for only 90–120 days, it is paid in one lump, and no NFT has to be priced or sold later. There is also a lot of cover. At worst (20% cap for 120 days, plus the bonus), lenders are owed about $29.9k, and $35.3k arrives. That leaves roughly $5.4k of buffer before the creator or HELIO get paid.
-
-## Payout order at takeout (replaces the old tail split)
-
-1. Lenders: principal, then locked interest, then the Factor Bonus
-2. Creator: 3x cash ($600). The 2x yield credit becomes an extra **2x cash** ($400), because there is no longer an NFT to credit it to. That keeps the creator's reward at 5x.
-3. Installer: $0.33/W base plus the $0.02/W day-one bonus, both unchanged. Their tail share becomes **7% of the factored proceeds** ($385), the same share they had before.
-4. HELIO: the rest (about $4.4k on the example roof)
-5. The 5% collateral ($845) is released to HELIO later, still by a manual admin action. The customer's payments still go 100% to HELIO.
-
-Because lenders can no longer come up short, the logic that pushed part of the creator's cash into later tail payments is removed.
+Lenders can no longer come up short, so the logic that deferred the creator's cash into tail payments is removed.
 
 ## Unchanged
 
-The $20/kW application fee (at risk), creator creation reward, 2.5% pre-fill withdrawal fee (1.5% to lenders who stay, 1% to protocol), the 72-hour auction, 1.8x→1x weights, per-deposit locked rates, the customer's power agreement, the brand, and the /solar page.
+The $20/kW application fee (at risk), creator reward, 2.5% withdrawal fee before the note fills (1.5% to lenders who stay, 1% to protocol), the customer's power agreement, the brand, and the /solar page. A withdrawal before the note fills gives up points in proportion to the amount withdrawn.
 
 ## App changes
 
-- **Economics and auction math:** factor constants (65% of face), new rate range (15% to 20%), Factor Bonus math, new payout order, and an all-in APR helper.
-- **Note records:** remove the Yield NFT fields, tail quarters and payments per share. Add factor proceeds, the bonus paid to each lender, and the creator's 2x cash.
+- **Economics:** add the factoring constants and a flat APR constant. Replace the rising-rate auction with a points multiplier based on how full the note is. Add the new payout order.
+- **Note records:** remove the Yield NFT and tail fields. Add factor proceeds, points per lender, deposit timestamps (for interest from the day of deposit), and the creator's 2x cash.
 - **Ledger:** record the factoring sale together with the takeout. Remove the actions for recording tail payments and claiming NFT cash. Collateral release goes to HELIO.
 - **Pages:**
-  - Note cards and note pages show "All-in APR" (rate + bonus) next to the weight.
+  - Note cards and note pages show "24% APR" and the live "Points 1.6x" in place of the live rate.
   - The underwriting table replaces the "Long tail" column with "Factored tail".
-  - Portfolio shows positions with their payout at takeout, not NFTs.
-  - The **market page and its nav link are retired**.
+  - The portfolio shows positions, the payout at takeout, and total points.
+  - **The market page and its nav link are retired.**
   - The admin console swaps "Record tail" for "Factor tail".
-  - Docs are rewritten for the new model.
-- **/welcome:** new hero numbers ("24–25% APR", "$1 → $1.08 in 120 days", "1.28x coverage"). The tail card becomes "Tail sold up front at 65%". All references to six years, 24 quarters, $1.20 and Yield NFTs are removed.
-- **Demo data:** the example notes and saved state are reset for the new model. Tests are updated for the payout order, the bonus and all-in APR.
-- **Project memory:** replace the "Yield NFTs share REC tail" rule with the factoring rule.
+  - The docs are rewritten.
+- **/welcome:** new hero numbers ("24% APR", "$1 → $1.08 in 120 days", "1.28x coverage", "Up to 2x points"). The rising-rate explainer becomes a points explainer. All mentions of six years, the $1.20 figure and Yield NFTs are removed.
+- **Demo data and tests:** the demo is reset. Tests cover interest from the day of deposit, the points multiplier and the payout order.
+- **Project memory:** replace the rules on the Yield NFT tail and early-funder APR with the factoring, flat APR and points rules.
 
 ## Technical notes
 
-- Constants: `FACTOR_ADVANCE = 0.65`, `FACTOR_BONUS_APR_PER_WEIGHT = 0.05`, `APR_FLOOR = 0.15`, `APR_CAP = 0.20`, and `CREATOR_YIELD_MULTIPLE` becomes `CREATOR_BONUS_CASH_MULTIPLE = 2`.
-- Factor Bonus per lender = `weightDollars × 0.05 × days/365`, paid from `factorProceeds`, which cover it about 8x.
-- `ledger.ts` stays the single source of truth for note state changes.
-- The Anchor program is still out of scope (already on the roadmap).
+- Constants: `FACTOR_ADVANCE = 0.65`, `LENDER_APR = 0.24`, `POINTS_START = 2`, `POINTS_END = 1`, and `CREATOR_BONUS_CASH_MULTIPLE = 2`.
+- Points for a deposit that moves the note's fill from f0 to f1 = the integral of `2 − f` from f0 to f1, times the build cost. This makes it the same whether the money comes in one deposit or many.
+- Interest per deposit = `amount × 0.24 × daysFromDeposit / 365`.
+- `ledger.ts` stays the single source of truth for note state changes. The Anchor program is still out of scope.
