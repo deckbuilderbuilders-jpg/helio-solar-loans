@@ -23,7 +23,7 @@ export function NoteCard({ n }: { n: HelioNote; now?: number }) {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <Stat label="APR" value={pct(n.apr, 2)} sub={open ? `${livePoints(n).toFixed(2)}x points now` : "fixed at creation"} accent />
+        <Stat label="APR" value={pct(n.apr, 2)} sub={open ? `${livePoints(n).toFixed(2)}x WATTS · early fill` : "fixed at creation"} accent />
         <Stat label="Coverage" value={`${e.coverage.toFixed(2)}x`} sub={`${usd(e.totalCash)} cash`} />
         <Stat label="System" value={`${n.kwDc} kW`} sub={`+ ${n.batteryKwh} kWh storage`} />
       </div>

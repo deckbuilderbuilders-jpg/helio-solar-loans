@@ -89,7 +89,7 @@ collateral = 5% of contract, held by the program`}
         </p>
       </Block>
 
-      <Block title="HELIO Points">
+      <Block title="WATTS points">
         <p>
           Early lenders earn more points: {POINTS_START}x per dollar when the note is empty, falling linearly to {POINTS_END}x when it's full. Points carry
           no cash value in this version. Before a note fills, lenders can withdraw for a 2.5% fee (1.5% to lenders who stay, 1.0% to the protocol) and

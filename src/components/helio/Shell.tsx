@@ -17,6 +17,7 @@ import { usdc } from "./ui";
 const nav = [
   { to: "/projects", label: "Notes" },
   { to: "/portfolio", label: "Portfolio" },
+  { to: "/points", label: "WATTS" },
   { to: "/originate", label: "Import" },
   { to: "/oracle", label: "Oracle" },
   { to: "/docs", label: "Docs" },
