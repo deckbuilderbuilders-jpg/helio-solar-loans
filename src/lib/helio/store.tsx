@@ -1,3 +1,4 @@
+import type React from "react";
 /**
  * HelioProvider — simulated devnet ledger, connected demo wallet, live clock.
  * Persists to localStorage; "Reset demo" re-runs the seed.
@@ -34,7 +35,9 @@ export interface HelioContextValue {
   releaseCollateral: (noteId: string) => void;
 }
 
-const Ctx = createContext<HelioContextValue | null>(null);
+// Keep one context object across hot reloads so providers and consumers always match.
+const g = globalThis as { __helioCtx?: React.Context<HelioContextValue | null> };
+const Ctx = (g.__helioCtx ??= createContext<HelioContextValue | null>(null));
 const roleWallet: Record<Role, Address> = { investor: DEMO.investor, admin: DEMO.admin, installer: DEMO.installer };
 const walletRole = (w: Address | null): Role | null => (w === DEMO.admin ? "admin" : w === DEMO.installer ? "installer" : w ? "investor" : null);
 const nowSec = () => Math.floor(Date.now() / 1000);
