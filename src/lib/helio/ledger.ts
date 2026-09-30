@@ -236,7 +236,10 @@ export function withdraw(s: LedgerState, a: { lender: Address; noteId: string; a
   if (stayTotal > EPS) {
     for (const [who, v] of stayers) exitBonus[who] = (exitBonus[who] ?? 0) + (toStayers * v) / stayTotal;
   } else protocolCut += toStayers;
-  let st = put(s, { ...n, deposits, timeDollars, points, exitBonus });
+  const exitPts = (n.points[a.lender] ?? 0) * (1 - keep);
+  const avgT = held > EPS ? (n.timeDollars[a.lender] ?? 0) / held : a.now;
+  const exits = [...(n.exits ?? []), { who: a.lender, amount: amt, mfill: amt > EPS ? exitPts / amt : 1, days: Math.max(0, (a.now - avgT) / D) }];
+  let st = put(s, { ...n, deposits, timeDollars, points, exitBonus, exits });
   st = credit(st, a.lender, refund);
   st = credit(st, st.config.treasury, protocolCut);
   return logTx(st, "withdraw", a.lender, `Withdrew ${fmt(amt)} from ${n.name}: ${fmt(refund)} back, ${fmt(toStayers)} to stayers, ${fmt(toProtocol)} protocol`, a.now);
@@ -303,6 +306,7 @@ export function recordTakeout(s: LedgerState, signer: Address, noteId: string, a
     ...n,
     stage: 5,
     takeoutReceived: amount,
+    repaidAt: now,
     factorProceeds: factor,
     lendersRepaid: lendersPay,
     creatorPaid: creatorPay,
