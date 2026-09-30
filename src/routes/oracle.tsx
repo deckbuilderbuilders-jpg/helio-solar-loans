@@ -14,7 +14,7 @@ export const Route = createFileRoute("/oracle")({
       { title: "Oracle console — HELIO" },
       { name: "description", content: "Admin console: mark builds, record PTO, settle Ameren + Illinois Shines takeout, factor the REC tail and release collateral." },
       { property: "og:title", content: "Oracle console — HELIO" },
-      { property: "og:description", content: "Advance notes and inject takeout USDC for the demo." },
+      { property: "og:description", content: "Advance notes and record takeout for each project." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/oracle")({
 function Oracle() {
   const { state, role, connect } = useHelio();
   if (role !== "admin") {
-    return <Empty title="Oracle console is admin-only" body="The oracle writes build, PTO, takeout and collateral events so the demo never depends on Illinois servers." cta={<Button variant="volt" onClick={() => connect("admin")}>Load oracle admin</Button>} />;
+    return <Empty title="Oracle console is admin-only" body="The oracle writes build, PTO, takeout and collateral events for each project." cta={<Button variant="volt" onClick={() => connect("admin")}>Load oracle admin</Button>} />;
   }
   const b = state.balances;
   return (

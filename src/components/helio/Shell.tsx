@@ -36,7 +36,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
 function Header() {
   const { wallet, role, balance, ready, connect, disconnect, faucet, resetDemo } = useHelio();
-  const roleLabel = role === "admin" ? "Oracle admin" : role === "installer" ? "Installer" : role ? "Demo lender" : "Wallet";
+  const roleLabel = role === "admin" ? "Oracle admin" : role === "installer" ? "Installer" : role ? "Lender" : "Wallet";
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
@@ -78,8 +78,8 @@ function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel className="eyebrow">Demo keypairs (devnet)</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => connect("investor")}>Load demo lender</DropdownMenuItem>
+              <DropdownMenuLabel className="eyebrow">Devnet keypairs</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => connect("investor")}>Load lender wallet</DropdownMenuItem>
               <DropdownMenuItem onClick={() => connect("admin")}>Load oracle admin</DropdownMenuItem>
               <DropdownMenuItem onClick={() => connect("installer")}>Load installer</DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -87,7 +87,7 @@ function Header() {
                 <Droplets className="size-3.5" /> Faucet 10,000 USDC-dev
               </DropdownMenuItem>
               <DropdownMenuItem onClick={resetDemo}>
-                <RotateCcw className="size-3.5" /> Reset demo state
+                <RotateCcw className="size-3.5" /> Reload my projects
               </DropdownMenuItem>
               {wallet && (
                 <>
@@ -117,7 +117,7 @@ function Footer() {
     <footer className="border-t border-border">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 text-xs text-muted-foreground md:flex-row md:items-center md:justify-between md:px-8">
         <span>HELIO · Solana devnet · Illinois program year 2026–27 · Ameren Group A</span>
-        <span className="font-mono">Not an offer of securities. Demo uses seeded keypairs and mock Ameren and Illinois Shines payments.</span>
+        <span className="font-mono">Not an offer of securities. Devnet: Ameren and Illinois Shines payments are entered by the oracle.</span>
       </div>
     </footer>
   );

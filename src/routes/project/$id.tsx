@@ -31,7 +31,7 @@ function NoteDetail() {
   const [amt, setAmt] = useState("1000");
 
   if (!n) {
-    return <Empty title="Note not found" body="This note isn't in the demo ledger. Reset the demo from the wallet menu." cta={<Button asChild variant="secondary"><Link to="/projects">All notes</Link></Button>} />;
+    return <Empty title="Note not found" body="This note doesn't exist. Import an application to create one." cta={<Button asChild variant="secondary"><Link to="/projects">All notes</Link></Button>} />;
   }
   const e = econOf(n);
   const open = n.stage === 1 && !n.failed;

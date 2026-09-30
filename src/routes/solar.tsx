@@ -75,23 +75,6 @@ const STEPS = [
   { n: "04", t: "Flip the switch", s: "Permission to operate, then your new rate starts." },
 ];
 
-const QUOTES = [
-  {
-    q: "Our Ameren bill was $190 a month and climbing. Now it's $90, fixed. The battery carried us through the February outage without a flicker.",
-    name: "Dana R.",
-    town: "Springfield, IL",
-  },
-  {
-    q: "I kept waiting for the catch. There wasn't one — no loan, no lien, and the panels are in my name. The install crew was done by dinner.",
-    name: "Marcus T.",
-    town: "Champaign, IL",
-  },
-  {
-    q: "The day-one install sold me. Panels up in the morning, battery on the wall by afternoon, and the app showed us generating before they left.",
-    name: "Priya S.",
-    town: "Bloomington, IL",
-  },
-];
 
 function SolarSplash() {
   const navigate = useNavigate();
@@ -389,30 +372,6 @@ function SolarSplash() {
                 </div>
               ))}
             </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section style={grid} className="border-b border-[var(--w-line)]">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <Reveal>
-            <div className="flex items-center gap-2 font-medium">
-              <span className="text-[var(--w-orange)]">★★★★★</span>
-              <span>4.9 average across Illinois installs</span>
-            </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {QUOTES.map((t) => (
-                <figure key={t.name} className="rounded-lg border border-[var(--w-navy)] bg-[var(--w-cream)] p-6">
-                  <blockquote className="text-sm leading-relaxed opacity-80">“{t.q}”</blockquote>
-                  <figcaption className="mt-4 font-mono text-xs uppercase tracking-widest">
-                    <span className="font-bold">{t.name}</span>
-                    <span className="opacity-60"> · {t.town}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-            <p className="mt-4 text-xs opacity-50">Illustrative homeowner stories shown for the demo.</p>
           </Reveal>
         </div>
       </section>
