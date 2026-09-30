@@ -64,7 +64,7 @@ const avgDepositAt = (n: HelioNote, who: Address) => {
 function rolled(s: LedgerState, n: HelioNote, who: Address): boolean {
   if (!n.repaidAt) return false;
   return s.notes.some((m) => {
-    if (m.id === n.id || m.failed || !(m.deposits[who] > 0)) return false;
+    if (m.id === n.id || m.failed || !((m.deposits[who] ?? 0) > 0)) return false;
     const t = avgDepositAt(m, who);
     return t >= n.repaidAt! && t <= n.repaidAt! + ROLL_WINDOW_DAYS * D;
   });
@@ -107,7 +107,7 @@ export function seasonWatts(s: LedgerState, now: number): SeasonWatts {
   // Capital
   for (const n of notes) {
     for (const who of Object.keys(n.deposits)) {
-      const p = n.deposits[who];
+      const p = n.deposits[who] ?? 0;
       if (!(p > 0)) continue;
       const end = n.repaidAt ?? (n.fundedAt ? Math.min(now, settleAt(n, now)) : now);
       const days = Math.max(0, (end - avgDepositAt(n, who)) / D);
@@ -133,10 +133,10 @@ export function seasonWatts(s: LedgerState, now: number): SeasonWatts {
     noteCompletionEst[n.id] = denom > 0 ? (Wn / denom) * poolSize.completion : 0;
     if (!isRepaid) continue;
     const share = Wn / sumW;
-    const lenders = Object.keys(n.deposits).filter((k) => n.deposits[k] > 0);
-    const sumL = lenders.reduce((a, k) => a + n.deposits[k] * mfillOf(n, k), 0);
+    const lenders = Object.keys(n.deposits).filter((k) => (n.deposits[k] ?? 0) > 0);
+    const sumL = lenders.reduce((a, k) => a + (n.deposits[k] ?? 0) * mfillOf(n, k), 0);
     for (const k of lenders) {
-      let amt = (n.deposits[k] * mfillOf(n, k)) / sumL;
+      let amt = ((n.deposits[k] ?? 0) * mfillOf(n, k)) / sumL;
       if (k === n.creator) amt *= WASH_HAIRCUT;
       add("completion", k, amt * share);
     }
