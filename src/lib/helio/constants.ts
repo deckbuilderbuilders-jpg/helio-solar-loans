@@ -65,16 +65,15 @@ export const ORIGINATOR_TAIL_BPS = 2000;
 export const SECONDS_PER_YEAR = 365 * 86400;
 export const USDC_DECIMALS = 6;
 
-/** Note lifecycle stages. Stages 3–7 are written by the oracle / admin. */
+/** Note lifecycle stages. Stages 3–6 are written by the oracle / admin. */
 export const STAGES = [
-  { id: 0, code: "S0", title: "Creator pays $20/kW application fee" },
-  { id: 1, code: "S1", title: "Reverse Dutch auction open (12% → 25% APR)" },
-  { id: 2, code: "S2", title: "Funded — clearing APR locked, 90–120 day lockup starts" },
+  { id: 0, code: "S0", title: "Creator imports the Illinois Shines application, pays $20/kW" },
+  { id: 1, code: "S1", title: "Filling at a fixed APR (18–24%, from REC coverage) · points 2x → 1x" },
+  { id: 2, code: "S2", title: "Funded — 90–120 day lockup starts" },
   { id: 3, code: "S3", title: "Built — installer paid $0.33/W (+ $0.02/W day-one)" },
-  { id: 4, code: "S4", title: "Ameren Permission to Operate, rebates filed" },
-  { id: 5, code: "S5", title: "Takeout landed — lenders repaid P+I, creator 3x cash" },
-  { id: 6, code: "S6", title: "REC tail streaming to Yield NFTs" },
-  { id: 7, code: "S7", title: "REC tail complete (24 quarters)" },
+  { id: 4, code: "S4", title: "Permission to Operate, rebates filed" },
+  { id: 5, code: "S5", title: "Takeout + REC tail factored at 65% — lenders repaid P+I" },
+  { id: 6, code: "S6", title: "5% REC collateral released — closed" },
 ] as const;
 /** @deprecated alias kept for docs. */
 export const GATES = STAGES;

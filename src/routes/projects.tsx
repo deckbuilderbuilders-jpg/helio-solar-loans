@@ -7,9 +7,9 @@ export const Route = createFileRoute("/projects")({
   head: () => ({
     meta: [
       { title: "Open notes — HELIO" },
-      { name: "description", content: "Live reverse Dutch auctions and funded bridge notes on Ameren Illinois solar + storage roofs." },
+      { name: "description", content: "Open and funded HELIO bridge notes on Illinois solar + storage roofs, each priced 18–24% APR from its REC value." },
       { property: "og:title", content: "Open notes — HELIO" },
-      { property: "og:description", content: "Live APR auctions on Illinois solar roofs, capped at 25%." },
+      { property: "og:description", content: "Fixed 18–24% APR notes on Illinois solar roofs, repaid in 90–120 days." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -24,9 +24,9 @@ function Projects() {
   return (
     <div className="space-y-10">
       <section>
-        <SectionHead eyebrow="Reverse Dutch auction" title="Live auctions" right={<span className="text-xs text-muted-foreground">APR climbs 12% → 25% over 72h until filled</span>} />
+        <SectionHead eyebrow="Fixed APR · points 2x → 1x" title="Filling now" right={<span className="text-xs text-muted-foreground">Each APR is set by the roof's REC coverage. Early dollars earn up to 2x points.</span>} />
         <div className="grid gap-4 md:grid-cols-2">{live.map((n) => <NoteCard key={n.id} n={n} now={now} />)}</div>
-        {live.length === 0 && <p className="text-sm text-muted-foreground">No auctions open. Create a roof.</p>}
+        {live.length === 0 && <p className="text-sm text-muted-foreground">No notes filling. Import an application to create one.</p>}
       </section>
       <section>
         <SectionHead eyebrow="Locked + settled" title="Funded notes" />

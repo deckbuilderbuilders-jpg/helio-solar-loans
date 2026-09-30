@@ -1,40 +1,27 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import roof from "@/assets/welcome-roof.jpg";
+import { LOCKUP_MIN_DAYS, LOCKUP_MAX_DAYS, POINTS_END, POINTS_START, noteInterest, periodYield } from "@/lib/helio/auction";
 import {
-  APR_CAP,
-  APR_FLOOR,
-  AUCTION_HOURS,
-  LOCKUP_MIN_DAYS,
-  LOCKUP_MAX_DAYS,
-  auctionApr,
-  noteInterest,
-  periodYield,
-} from "@/lib/helio/auction";
-import {
-  AMEREN_SOLAR_REBATE_PER_W_DC,
   APPLICATION_FEE_PER_KW,
+  APR_MAX,
+  APR_MIN,
   BATTERY_COST_PER_KWH,
   BATTERY_HARDWARE_PER_KWH,
   BATTERY_INSTALL_PER_KWH,
   BATTERY_REBATE_PER_KWH,
-  CREATOR_CASH_MULTIPLE,
-  CREATOR_YIELD_MULTIPLE,
-  FIRST_REC_PER_W_DC,
-
+  COVERAGE_FULL,
+  COVERAGE_MIN,
+  CREATOR_TOTAL_MULTIPLE,
+  FACTOR_ADVANCE,
   INSTALLER_BASE_PER_W_DC,
   INSTALLER_DAY_ONE_BONUS_PER_W_DC,
-  INSTALLER_SHARE_OF_PROTOCOL_FEE,
   PREBOND_EXIT_FEE,
   SOLAR_COST_PER_W_DC,
   SOLAR_HARDWARE_PER_W_DC,
-  TAIL_PROTOCOL_FEE,
-  TAIL_QUARTERS,
-  TAIL_TO_HELIO,
-  TAIL_TO_INSTALLER,
-  TAIL_TO_YIELD,
+  batteryForSize,
+  payoutPerDollar,
   projectEconomics,
-  yieldNftTotalPerDollar,
 } from "@/lib/helio/economics";
 
 export const WELCOMED_KEY = "helio.welcomed";
@@ -46,13 +33,13 @@ export const Route = createFileRoute("/welcome")({
       {
         name: "description",
         content:
-          "Lend USDC into Illinois solar. Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six years.",
+          "Lend USDC into Illinois solar at 18–24% APR, set by each roof's REC value. The utility company and the state return principal plus interest in 90–120 days.",
       },
       { property: "og:title", content: "HELIO — Fund Solar. Earn Yield." },
       {
         property: "og:description",
         content:
-          "Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six years.",
+          "18–24% APR on Illinois solar bridge notes, repaid in 90–120 days. Early lenders earn up to 2x points.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -81,18 +68,18 @@ const usd = (n: number, d = 0) =>
   `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 
 const STATIONS = [
-  { n: "01", t: "Create", s: `Scout pays the $${APPLICATION_FEE_PER_KW}/kW filing fee` },
-  { n: "02", t: "Auction", s: "Rate climbs until the note fills" },
+  { n: "01", t: "Import", s: "Illinois Shines application sets the REC value" },
+  { n: "02", t: "Fund", s: "Fixed APR · points 2x → 1x as it fills" },
   { n: "03", t: "Build", s: "Crew installs solar and storage" },
   { n: "04", t: "Energize", s: "PTO, then Part II" },
-  { n: "05", t: "Repaid", s: "Rebates and first REC return principal" },
-  { n: "06", t: "Tail", s: `Customer payments + ${TAIL_QUARTERS} REC quarters` },
+  { n: "05", t: "Factor", s: `REC tail sold at ${Math.round(FACTOR_ADVANCE * 100)}% of face` },
+  { n: "06", t: "Repaid", s: "Principal + interest in one payment" },
 ];
 
-const TICKER = ["Ameren Illinois", "Illinois Shines", "Group A RECs", "Paired storage", "USDC", "Solana"];
+const TICKER = ["Ameren Illinois", "ComEd", "Illinois Shines", "REC contracts", "Paired storage", "USDC", "Solana"];
 
 const COMPARE: Array<[string, string, string, string]> = [
-  ["HELIO note + Yield NFT", `${pct(APR_FLOOR, 0)} → ${pct(APR_CAP, 0)} plus tail`, `${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS} days, tail tradable`, "Utility rebates, state REC contract, customer payments"],
+  ["HELIO note", `${Math.round(APR_MIN * 100)}–${Math.round(APR_MAX * 100)}% fixed + points`, `${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS} days`, "Utility rebates, state REC contract, factored REC tail"],
   ["Aave USDC supply", "≈6% variable", "Open", "Crypto collateral, liquidation driven"],
   ["Pendle fixed yield", "≈10% fixed", "To maturity", "Yield-token pricing risk"],
   ["T-bills", "≈4.5%", "3–6 months", "Government paper"],
@@ -116,35 +103,25 @@ function Reveal({ children, className = "" }: { children: ReactNode; className?:
   return <div ref={ref} className={`w-reveal ${seen ? "w-in" : ""} ${className}`}>{children}</div>;
 }
 
-/** Live auction clock for the featured note: opened this many hours ago. */
-const FEATURED_OPENED_HOURS = 49.5;
-
-function useLiveApr() {
-  const [hours, setHours] = useState(FEATURED_OPENED_HOURS);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setHours((h) => Math.min(AUCTION_HOURS, h + 0.05)), 900);
-    return () => clearInterval(id);
-  }, []);
-  return { hours, apr: auctionApr(hours) };
-}
-
 function Welcome() {
   const navigate = useNavigate();
-  const { hours, apr } = useLiveApr();
   const [kw, setKw] = useState(10);
-  const e = projectEconomics(kw);
-  const interest = noteInterest(e.buildCost, apr, LOCKUP_MIN_DAYS);
-  const coverage = e.takeout / (e.buildCost + interest);
+  const [cf, setCf] = useState(0.1642);
+  const e = projectEconomics(kw, batteryForSize(kw), { capacityFactor: cf });
+  const interest = noteInterest(e.buildCost, e.apr, LOCKUP_MAX_DAYS);
   const flagship = projectEconomics(10);
+  const comed = projectEconomics(10, 64, { group: "B" });
+  const shaded = projectEconomics(10, 64, { capacityFactor: 0.14 });
+  const apr = flagship.apr;
   const lend = 10000;
+  const funded = 0.42;
 
   useEffect(() => {
     try { localStorage.setItem(WELCOMED_KEY, "1"); } catch { /* ignore */ }
   }, []);
 
   const enter = () => navigate({ to: "/projects" });
-  const progress = Math.min(1, hours / AUCTION_HOURS);
+
 
   return (
     <div style={{ ...palette, fontFamily: "var(--font-sans)" }} className="min-h-screen bg-[var(--w-cream)] text-[var(--w-navy)] [color-scheme:light]">
@@ -177,13 +154,13 @@ function Welcome() {
         </div>
       </header>
 
-      {/* Live auction strip */}
+      {/* Live note strip */}
       <div className="border-b border-[var(--w-line)] bg-[var(--w-navy)] text-[var(--w-cream)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-6 py-2 font-mono text-[11px] uppercase tracking-widest">
-          <span className="flex items-center gap-2"><span className="w-blink inline-block h-2 w-2 rounded-full bg-[var(--w-orange)]" />Live auction</span>
-          <span>Springfield 10 kW + 64 kWh · <span className="text-[var(--w-orange)]">{pct(apr)} APR</span> and climbing</span>
-          <span className="hidden sm:inline">Cap {pct(APR_CAP, 0)}</span>
-          <span className="hidden md:inline">{Math.max(0, AUCTION_HOURS - hours).toFixed(1)}h left on clock</span>
+          <span className="flex items-center gap-2"><span className="w-blink inline-block h-2 w-2 rounded-full bg-[var(--w-orange)]" />Filling now</span>
+          <span>Springfield 10 kW + 64 kWh · <span className="text-[var(--w-orange)]">{pct(apr, 2)} APR</span> fixed</span>
+          <span className="hidden sm:inline">{flagship.coverage.toFixed(2)}× coverage</span>
+          <span className="hidden md:inline">{(POINTS_START - (POINTS_START - POINTS_END) * funded).toFixed(2)}× points now</span>
         </div>
       </div>
 
@@ -197,12 +174,12 @@ function Welcome() {
               Fund Solar. <span className="text-[var(--w-orange)]">Earn Yield.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg opacity-80">
-              Utility company returns your principal in 120 days. You keep a tradable Yield NFT paying quarterly for six
-              years.
+              Earn {pct(APR_MIN, 0)}–{pct(APR_MAX, 0)} APR. The utility company and the state return your principal plus
+              interest in 120 days. Early dollars earn up to {POINTS_START}× points.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button onClick={enter} className="h-12 rounded-md bg-[var(--w-orange)] px-6 font-semibold text-[var(--w-navy)] hover:opacity-90">
-                Fund a note at {pct(apr)}
+                Fund a note at {pct(apr, 2)}
               </button>
               <Link to="/docs" className="flex h-12 items-center rounded-md border border-[var(--w-navy)] px-6 font-semibold hover:bg-[var(--w-navy)] hover:text-[var(--w-cream)]">
                 Read the underwriting
@@ -211,8 +188,8 @@ function Welcome() {
             <dl className="mt-8 grid max-w-lg grid-cols-3 gap-4 border-t border-[var(--w-line)] pt-5 text-sm">
               {[
                 [`${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS}d`, "To full principal return"],
-                [`${flagship.takeoutCoverage.toFixed(2)}×`, "Contracted takeout cover"],
-                [`$${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)}`, "Value of $1 lent, end of the six-year tail"],
+                [`${pct(APR_MIN, 0)}–${pct(APR_MAX, 0)}`, "APR, set by each roof's REC value"],
+                [`$${payoutPerDollar(apr, 120).toFixed(2)}`, "Back per $1 lent, day 120"],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="font-display text-xl font-bold">{v}</dt>
@@ -227,7 +204,7 @@ function Welcome() {
               <img src={roof} alt="Solar panels on an Illinois home roof" width={1280} height={896} className="aspect-[4/3] w-full rounded-lg border border-[var(--w-navy)] object-cover" />
               <div className="absolute -bottom-4 -left-4 rounded-md bg-[var(--w-navy)] px-4 py-3 text-[var(--w-cream)]">
                 <div className="font-mono text-[10px] uppercase tracking-widest opacity-70">Springfield · 10 kW-DC + 64 kWh · Ameren DS-1</div>
-                <div className="font-display text-lg font-bold">{usd(23400)} of {usd(flagship.buildCost)} funded</div>
+                <div className="font-display text-lg font-bold">{usd(flagship.buildCost * funded)} of {usd(flagship.buildCost)} funded</div>
               </div>
             </div>
           </Reveal>
@@ -242,82 +219,73 @@ function Welcome() {
         </div>
       </div>
 
-      {/* Customer side */}
+      {/* Two sources of repayment */}
       <section style={grid} className="border-b border-[var(--w-line)]">
         <div className="mx-auto grid max-w-6xl gap-4 px-6 py-16 md:grid-cols-2">
           <Reveal>
             <div className="h-full rounded-lg border border-[var(--w-navy)] p-7">
-              <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">Leg one · Capital return</div>
+              <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">Source one · Fixed rebates</div>
               <h2 className="mt-3 font-display text-3xl font-black tracking-tight">Your $1 comes back from a utility check.</h2>
               <p className="mt-4 opacity-80">
-                Repayment is not a borrower promise. It is the Ameren DG rebate, the Ameren paired-storage rebate and the
-                Illinois Shines first REC payment — {usd(flagship.takeout)} of contracted cash, after the state's 5%
-                collateral hold, against a{" "}
+                The Ameren DG rebate ($300/kW) and paired-storage rebate ($300/kWh) are fixed per kW installed, plus the
+                Illinois Shines first REC payment — {usd(flagship.takeout)} after the state's 5% collateral hold, against a{" "}
                 {usd(flagship.buildCost)} build. No price oracle, no margin call, no rollover.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest opacity-60">
-                {usd(10000)} lent → {usd(10000 * (1 + periodYield(apr, LOCKUP_MIN_DAYS)))} at takeout
+                {usd(lend)} lent → {usd(lend * (1 + periodYield(apr, LOCKUP_MAX_DAYS)))} at day 120
               </p>
             </div>
           </Reveal>
           <Reveal>
             <div className="h-full rounded-lg border-2 border-[var(--w-orange)] bg-[var(--w-navy)] p-7 text-[var(--w-cream)]">
-              <div className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--w-orange)]">Leg two · The tail</div>
-              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">The profit keeps paying after you are repaid.</h2>
+              <div className="font-mono text-xs uppercase tracking-[0.3em] text-[var(--w-orange)]">Source two · The REC tail, sold</div>
+              <h2 className="mt-3 font-display text-3xl font-black tracking-tight">No six-year wait. The tail is cashed up front.</h2>
               <p className="mt-4 opacity-80">
-                Every note mints a Yield NFT holding {pct(TAIL_TO_YIELD, 0)} of the remaining half of the 15-year REC
-                contract, paid over {TAIL_QUARTERS} quarters. Hold it for the cash or sell it outright.
+                The other half of the 15-year REC contract is sold at {pct(FACTOR_ADVANCE, 0)} of face the day the system
+                energizes — {usd(flagship.factorProceeds)} on a 10 kW roof. That cushion is what pays the higher rate.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
-                $1 lent is worth ${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)} once the {TAIL_QUARTERS}th REC quarter pays.
+                {usd(flagship.totalCash)} of cash against {usd(flagship.buildCost)} — {flagship.coverage.toFixed(2)}× coverage
               </p>
             </div>
           </Reveal>
-
         </div>
       </section>
 
-      {/* Auction explainer */}
+      {/* Pricing explainer */}
       <section className="border-b border-[var(--w-line)]">
         <div className="mx-auto max-w-6xl px-6 py-16">
           <Reveal>
-            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">Rate discovery</div>
-            <h2 className="mt-3 font-display text-3xl font-black tracking-tight md:text-5xl">
-              The rate climbs until the note fills.
-            </h2>
+            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">Pricing</div>
+            <h2 className="mt-3 font-display text-3xl font-black tracking-tight md:text-5xl">Each roof's rate comes from its REC value.</h2>
             <p className="mt-4 max-w-2xl opacity-80">
-              Every note opens at {pct(APR_FLOOR, 0)} and walks up over {AUCTION_HOURS} hours, capped at {pct(APR_CAP, 0)}.
-              Wait and you earn more. Wait too long and the note clears without you. Before the note fills you can pull your
-              deposit for a {pct(PREBOND_EXIT_FEE, 1)} fee; once it fills, cash is locked until takeout.
+              Rebates are fixed. The REC contract depends on production — size, capacity factor, utility and adders, all on
+              the state application. A thinner cushion pays more: {pct(APR_MAX, 0)} at {COVERAGE_MIN.toFixed(2)}× coverage,
+              down to {pct(APR_MIN, 0)} at {COVERAGE_FULL.toFixed(2)}×. Below {COVERAGE_MIN.toFixed(2)}× a roof isn't listed.
             </p>
-
-            <div className="mt-10 rounded-lg border border-[var(--w-navy)] p-6">
-              <div className="flex items-end justify-between font-mono text-xs uppercase tracking-widest">
-                <span>{pct(APR_FLOOR, 0)} floor</span>
-                <span className="text-[var(--w-orange)]">{pct(APR_CAP, 0)} cap</span>
-              </div>
-              <div className="relative mt-3 h-3 rounded-full bg-[var(--w-navy)]/10">
-                <div className="h-full rounded-full bg-[var(--w-orange)]" style={{ width: pct(progress) }} />
-                <div
-                  className="absolute -top-1 h-5 w-5 -translate-x-1/2 rounded-full border-2 border-[var(--w-cream)] bg-[var(--w-navy)]"
-                  style={{ left: pct(progress) }}
-                />
-              </div>
-              <div className="mt-6 grid gap-6 sm:grid-cols-3">
-                {[
-                  [pct(apr), "Offered now"],
-                  [pct(periodYield(apr, LOCKUP_MIN_DAYS), 2), `Yield over ${LOCKUP_MIN_DAYS} days`],
-                  [usd(lend * (1 + periodYield(apr, LOCKUP_MIN_DAYS)), 0), `${usd(lend)} lent returns`],
-                ].map(([v, l]) => (
-                  <div key={l}>
-                    <div className="font-display text-4xl font-black tracking-tight">{v}</div>
-                    <div className="mt-1 text-sm opacity-70">{l}</div>
+            <div className="mt-10 grid gap-3 md:grid-cols-3">
+              {[
+                ["ComEd roof", comed, "Group B REC prices"],
+                ["Ameren roof", flagship, "Group A, customer-owned"],
+                ["Shaded Ameren roof", shaded, "14% capacity factor"],
+              ].map(([t, x, d]) => {
+                const ex = x as typeof flagship;
+                return (
+                  <div key={t as string} className="rounded-lg border border-[var(--w-navy)] p-6">
+                    <div className="font-display text-4xl font-black tracking-tight">{pct(ex.apr, 1)}</div>
+                    <div className="mt-1 font-display text-lg font-bold">{t as string}</div>
+                    <div className="font-mono text-xs text-[var(--w-orange)]">{ex.coverage.toFixed(2)}× coverage · {ex.rec.quantity} RECs × ${ex.rec.price.toFixed(2)}</div>
+                    <div className="mt-2 text-sm opacity-70">{d as string}</div>
                   </div>
-                ))}
-              </div>
-              <p className="mt-5 text-sm opacity-70">
-                Plus a Yield NFT on {pct(TAIL_TO_YIELD, 0)} of the tail: every $1 lent is worth{" "}
-                ${(1 + yieldNftTotalPerDollar(flagship)).toFixed(2)} once the last REC quarter pays.
+                );
+              })}
+            </div>
+            <div className="mt-6 rounded-lg border-2 border-[var(--w-orange)] p-6">
+              <div className="font-display text-2xl font-black tracking-tight">Early dollars earn up to {POINTS_START}× points.</div>
+              <p className="mt-2 text-sm opacity-70">
+                Everyone in a note earns the same APR, from the day their deposit lands. Points start at {POINTS_START}× when a
+                note is empty and fall to {POINTS_END}× as it fills. Before it fills you can pull your deposit for a{" "}
+                {pct(PREBOND_EXIT_FEE, 1)} fee; once it fills, cash is locked until takeout.
               </p>
             </div>
           </Reveal>
@@ -362,6 +330,10 @@ function Welcome() {
                 className="mt-3 w-full accent-[var(--w-orange)]"
               />
             </label>
+            <label className="mt-4 block max-w-md">
+              <span className="font-mono text-xs uppercase tracking-widest opacity-70">Capacity factor — {pct(cf, 1)}</span>
+              <input type="range" min={0.12} max={0.19} step={0.001} value={cf} onChange={(ev) => setCf(Number(ev.target.value))} className="mt-3 w-full accent-[var(--w-orange)]" />
+            </label>
 
             <div className="mt-8 grid gap-8 md:grid-cols-2">
               <div>
@@ -387,16 +359,17 @@ function Welcome() {
                 </table>
               </div>
               <div>
-                <div className="font-mono text-[11px] uppercase tracking-widest text-[var(--w-orange)]">Day 90–120 takeout</div>
+                <div className="font-mono text-[11px] uppercase tracking-widest text-[var(--w-orange)]">Day 90–120 cash</div>
                 <table className="mt-2 w-full text-sm">
                   <tbody>
                     {[
-                      ["Ameren DG rebate, $300/kW-DC", `$${AMEREN_SOLAR_REBATE_PER_W_DC.toFixed(2)}/W`, usd(e.amerenSolarRebate)],
+                      ["Ameren DG rebate", "$300/kW-DC", usd(e.amerenSolarRebate)],
                       ["Ameren paired-storage rebate", `$${BATTERY_REBATE_PER_KWH}/kWh`, usd(e.amerenBatteryRebate)],
-                      ["Illinois Shines first REC payment, 50% of a Group A contract with the customer-owned adder", `$${FIRST_REC_PER_W_DC.toFixed(3)}/W`, usd(e.firstRecPayment)],
-                      [`Interest at ${pct(apr)} for ${LOCKUP_MIN_DAYS} days`, "note cost", `−${usd(interest)}`],
-                      ["Takeout cover on principal + interest", "", `${coverage.toFixed(2)}×`],
-                      [`Creator ${CREATOR_CASH_MULTIPLE}× cash on the filing fee`, "from surplus", usd(e.creatorCashBack)],
+                      [`First REC payment, ${pct(e.rec.firstPct, 0)} of ${e.rec.quantity} RECs × $${e.rec.price.toFixed(2)}`, "less 5% collateral", usd(e.firstRecPayment - e.recCollateral)],
+                      [`REC tail sold at ${pct(FACTOR_ADVANCE, 0)} of ${usd(e.factorFace)}`, "factored", usd(e.factorProceeds)],
+                      ["Coverage → APR", `${e.coverage.toFixed(2)}×`, e.listable ? pct(e.apr, 2) : "not listed"],
+                      [`Interest at ${pct(e.apr, 1)} for ${LOCKUP_MAX_DAYS} days`, "lenders", `−${usd(interest)}`],
+                      [`Creator ${CREATOR_TOTAL_MULTIPLE}× cash on the filing fee`, "from surplus", usd(e.creatorTotal)],
                     ].map(([a, b, c]) => (
                       <tr key={a} className="border-b border-[var(--w-cream)]/15">
                         <td className="py-3 pr-3">{a}</td>
@@ -409,43 +382,9 @@ function Welcome() {
               </div>
             </div>
             <p className="mt-6 max-w-3xl text-sm opacity-70">
-              The storage line is what makes a no-battery-margin job unnecessary: Ameren pays {usd(BATTERY_REBATE_PER_KWH)} per
-              kWh against a {usd(BATTERY_COST_PER_KWH)} per kWh cost. On a {kw.toFixed(1)} kW roof the day-90 cash is{" "}
-              {usd(e.takeout)} against a {usd(e.buildCost)} build — {e.takeoutCoverage.toFixed(2)}× before interest, and{" "}
-              {coverage.toFixed(2)}× after it at today's auction rate.
+              On a {kw.toFixed(1)} kW roof the day-120 cash is {usd(e.totalCash)} against a {usd(e.buildCost)} build —{" "}
+              {e.coverage.toFixed(2)}× coverage. The customer's {usd(e.ppaMonthly)} monthly payment goes to HELIO for maintenance.
             </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* Tail split */}
-      <section style={grid} className="border-b border-[var(--w-line)]">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <Reveal>
-            <div className="font-mono text-xs uppercase tracking-[0.3em] opacity-60">The profit layer</div>
-            <h2 className="mt-3 font-display text-3xl font-black tracking-tight md:text-5xl">
-              Profit is the tail, not the rebate.
-            </h2>
-            <p className="mt-4 max-w-2xl opacity-80">
-              Rebates and the first REC check only return capital. The money is made afterwards: the remaining half of
-              the REC contract, {usd(flagship.recTailPerQuarter)} a quarter for {TAIL_QUARTERS} quarters. On a 10 kW roof
-              that is {usd(flagship.tailAnnual)} a year, split three ways. The customer's {usd(flagship.ppaMonthly)}{" "}
-              monthly payment goes to HELIO to cover maintenance.
-            </p>
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
-              {[
-                ["Yield NFT holders", TAIL_TO_YIELD, flagship.tailToYieldAnnual, "Tradable. Sell it or hold it for the quarterly cash."],
-                ["HELIO", TAIL_TO_HELIO, flagship.tailToHelioAnnual, `Protocol fee of ${pct(TAIL_PROTOCOL_FEE, 0)}, net of the installer's cut.`],
-                ["Installer", TAIL_TO_INSTALLER, flagship.tailToInstallerAnnual, `${pct(INSTALLER_SHARE_OF_PROTOCOL_FEE, 0)} of the HELIO fee — paid only while the system keeps generating.`],
-              ].map(([t, share, amount, d]) => (
-                <div key={String(t)} className="rounded-lg border-2 border-[var(--w-orange)] bg-[var(--w-cream)] p-6">
-                  <div className="font-display text-4xl font-black tracking-tight">{pct(share as number, 0)}</div>
-                  <div className="mt-1 font-display text-lg font-bold">{t as string}</div>
-                  <div className="font-mono text-xs text-[var(--w-orange)]">{usd(amount as number)}/yr per 10 kW roof</div>
-                  <div className="mt-2 text-sm opacity-70">{d as string}</div>
-                </div>
-              ))}
-            </div>
           </Reveal>
         </div>
       </section>
@@ -456,12 +395,12 @@ function Welcome() {
           <div className="flex-1">
             <div className="font-mono text-xs uppercase tracking-[0.3em]">Anyone can start a roof</div>
             <h2 className="mt-3 font-display text-4xl font-black leading-none tracking-tight md:text-6xl">
-              {usd(flagship.applicationFee)} to create. {usd(flagship.creatorCashBack)} back, plus tail equity.
+              {usd(flagship.applicationFee)} to create. {usd(flagship.creatorTotal)} back.
             </h2>
             <p className="mt-4 max-w-2xl text-sm">
-              The creator covers the {usd(APPLICATION_FEE_PER_KW)}/kW state filing fee. That money is the only money at risk:
-              if the note never fills, it is gone. If the roof gets built, the creator takes {CREATOR_CASH_MULTIPLE}× back in
-              cash at takeout ({usd(flagship.creatorCashBack)}) and {CREATOR_YIELD_MULTIPLE}× as Yield NFT equity ({usd(flagship.creatorYieldCredit)}).
+              The creator uploads the Illinois Shines application and covers the {usd(APPLICATION_FEE_PER_KW)}/kW state
+              filing fee. That money is the only money at risk: if the note never fills, it is gone. If the roof gets built,
+              the creator takes {CREATOR_TOTAL_MULTIPLE}× back in cash at takeout ({usd(flagship.creatorTotal)}).
               Lenders who deposit before the note fills can still walk away for {pct(PREBOND_EXIT_FEE, 1)}, which is paid to
               the lenders who stayed.
             </p>
@@ -510,8 +449,8 @@ function Welcome() {
                 ["Nothing to liquidate", "No price oracle, no margin call. Repayment is a check from a utility."],
                 ["Fixed term, no rollover", `Cash is locked ${LOCKUP_MIN_DAYS}–${LOCKUP_MAX_DAYS} days once the note fills.`],
                 ["Storage covers the interest", `Ameren pays ${usd(BATTERY_REBATE_PER_KWH)}/kWh against a ${usd(BATTERY_COST_PER_KWH)}/kWh cost.`],
-                ["Sell the tail whenever", "The Yield NFT trades on its own. Price it on the remaining quarters."],
-                ["Installer stays on the hook", "Their tail share only pays while the system keeps generating."],
+                ["One payment, no tail risk", "The REC tail is sold at energization. You're paid out in full at takeout."],
+                ["Priced from the application", "Every REC input comes from the state filing, fingerprinted on the note."],
                 ["Every dollar sourced", "Each note shows its REC tier, adder flags, rebates and battery line."],
               ].map(([t, d]) => (
                 <div key={t} className="rounded-lg border border-[var(--w-navy)] bg-[var(--w-cream)] p-5">
@@ -521,8 +460,8 @@ function Welcome() {
               ))}
             </div>
             <p className="mt-6 max-w-3xl text-xs opacity-60">
-              Illustrative figures for an Ameren DS-1 roof. Cash on and off ramp charges roughly 0.3–0.8% per crossing; a
-              1.5% treasury reserve is held out of gross state receipts before tail distributions.
+              Illustrative figures for an Ameren DS-1 roof. Cash on and off ramp charges roughly 0.3–0.8% per crossing. The
+              {pct(FACTOR_ADVANCE, 0)} factoring advance is a working assumption, not a quoted rate.
             </p>
           </Reveal>
         </div>

@@ -8,7 +8,7 @@ import * as L from "./ledger";
 import { DEMO, seedState } from "./seed";
 import type { Address, HelioNote, LedgerState } from "./types";
 
-const STORAGE_KEY = "helio:devnet-sim:v5-collateral";
+const STORAGE_KEY = "helio:devnet-sim:v6-factor";
 const WALLET_KEY = "helio:wallet:v3";
 
 export type Role = "investor" | "admin" | "installer";
@@ -31,11 +31,7 @@ export interface HelioContextValue {
   markBuilt: (noteId: string, dayOne: boolean) => void;
   markPto: (noteId: string) => void;
   recordTakeout: (noteId: string, amount: number) => void;
-  recordTail: (noteId: string, amount: number) => void;
   releaseCollateral: (noteId: string) => void;
-  claimNft: (nftId: string) => void;
-  listNft: (nftId: string, price: number | null) => void;
-  buyNft: (nftId: string) => void;
 }
 
 const Ctx = createContext<HelioContextValue | null>(null);
@@ -104,7 +100,7 @@ export function HelioProvider({ children }: { children: ReactNode }) {
       disconnect: () => setWallet(null),
       resetDemo: () => {
         setState(seedState(nowSec()));
-        toast.success("Demo reseeded", { description: "2 live auctions · 1 funded · 1 streaming tail" });
+        toast.success("Demo reseeded", { description: "2 filling · 1 funded · 1 repaid" });
       },
       faucet: (amount = 10_000) => simple("Faucet", (st, t) => L.faucet(st, me(), amount, t)),
       createNote: (a) =>
@@ -119,14 +115,6 @@ export function HelioProvider({ children }: { children: ReactNode }) {
       markPto: (noteId) => simple("PTO recorded", (st, t) => L.markPto(st, me(), noteId, t)),
       recordTakeout: (noteId, amount) => simple("Takeout settled", (st, t) => L.recordTakeout(st, me(), noteId, amount, t)),
       releaseCollateral: (noteId) => simple("Collateral released", (st, t) => L.releaseCollateral(st, me(), noteId, t)),
-      recordTail: (noteId, amount) => simple("Tail quarter paid", (st, t) => L.recordTail(st, me(), noteId, amount, t)),
-      claimNft: (nftId) =>
-        run("Claimed", (st, t) => {
-          const r = L.claimNft(st, me(), nftId, t);
-          return { state: r.state, result: null };
-        }),
-      listNft: (nftId, price) => simple(price === null ? "Delisted" : "Listed", (st, t) => L.listNft(st, me(), nftId, price, t)),
-      buyNft: (nftId) => simple("Yield NFT bought", (st, t) => L.buyNft(st, me(), nftId, t)),
     };
   }, [state, now, wallet, run, me]);
 

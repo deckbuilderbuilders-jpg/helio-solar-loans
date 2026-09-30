@@ -1,84 +1,36 @@
 /**
- * HELIO bridge-note auction math.
+ * HELIO note funding math.
  *
- * A HELIO note is a fixed-term construction bridge loan against Illinois solar
- * takeout cash (Ameren DG rebate + the Illinois Shines first REC payment).
- * Cash is locked from funding until takeout lands: 90–120 days.
- *
- * Rate discovery is an ASCENDING reverse Dutch auction: the offered APR starts
- * at the floor and climbs on a clock until the note fills. Lenders who wait get
- * a better rate but risk the note clearing without them. Whoever fills the last
- * dollar sets the clearing APR, and every lender in the note earns it.
+ * Each note carries one fixed APR (set from its REC coverage, see economics.ts).
+ * Interest accrues per deposit from the moment it lands until settlement.
+ * Early lenders earn HELIO Points: 2x per dollar at 0% filled, falling linearly
+ * to 1x at 100% filled. Points carry no cash promise.
  */
 
-/** Auction opens here. */
-export const APR_FLOOR = 0.12;
-/** Hard cap. The auction never prices above this. */
-export const APR_CAP = 0.25;
-/** Clock length: the APR walks floor -> cap over this many hours. */
-export const AUCTION_HOURS = 72;
-
-/** Lockup window, in days, from funding to takeout settlement. */
 export const LOCKUP_MIN_DAYS = 90;
 export const LOCKUP_MAX_DAYS = 120;
 
-/** Cost basis, per watt DC. Hardware from the bill of materials; labor is crew cost. */
-export const HARDWARE_COST_PER_W_DC = 0.8;
-export const LABOR_COST_PER_W_DC = 0.35;
-export const INSTALL_COST_PER_W_DC = HARDWARE_COST_PER_W_DC + LABOR_COST_PER_W_DC; // 1.15
-
-/** Takeout, per watt DC, for a ≤10 kW AC customer-owned Ameren roof. */
-export const AMEREN_REBATE_PER_W_DC = 0.3;
-export const FIRST_REC_PAYMENT_PER_W_DC = 0.845;
-export const TAKEOUT_PER_W_DC = AMEREN_REBATE_PER_W_DC + FIRST_REC_PAYMENT_PER_W_DC; // 1.145
-
-/**
- * Advance rate on the solar line. With paired storage the Ameren battery rebate
- * ($300/kWh against $250/kWh cost) covers interest, so the note funds the build
- * in full; see economics.ts.
- */
-export const ADVANCE_RATE = 1;
-
+export const POINTS_START = 2;
+export const POINTS_END = 1;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-/** Offered APR at `hoursElapsed` into the clock. Linear walk, clamped at the cap. */
-export function auctionApr(hoursElapsed: number): number {
-  const p = clamp(hoursElapsed / AUCTION_HOURS, 0, 1);
-  return APR_FLOOR + (APR_CAP - APR_FLOOR) * p;
+/** Points multiplier at fill fraction f (0..1). */
+export function pointsMultiplier(fill: number): number {
+  return POINTS_START - (POINTS_START - POINTS_END) * clamp(fill, 0, 1);
 }
 
-/** Early-funder tail weight: 1.8x at open, linearly down to 1x at the APR cap. */
-export const WEIGHT_START = 1.8;
-export const WEIGHT_END = 1;
-export function auctionWeight(hoursElapsed: number): number {
-  const p = clamp(hoursElapsed / AUCTION_HOURS, 0, 1);
-  return WEIGHT_START - (WEIGHT_START - WEIGHT_END) * p;
+/** Points for moving a note of size `target` from fill f0 to f1 — ∫(2 − f) df × target. */
+export function pointsForFill(target: number, f0: number, f1: number): number {
+  const g = (f: number) => POINTS_START * f - ((POINTS_START - POINTS_END) * f * f) / 2;
+  return target * (g(clamp(f1, 0, 1)) - g(clamp(f0, 0, 1)));
 }
 
-/** Simple (non-compounding) interest on a note held to takeout. */
+/** Simple (non-compounding) interest. */
 export function noteInterest(principal: number, apr: number, days: number): number {
   return principal * apr * (days / 365);
 }
 
-/** Absolute yield a lender earns over the lockup, not annualized. */
 export function periodYield(apr: number, days: number): number {
   return apr * (days / 365);
-}
-
-/** Underwrite one roof from nameplate DC watts. */
-export function underwriteNote(wattsDc: number, apr: number, days = LOCKUP_MIN_DAYS) {
-  const cost = wattsDc * INSTALL_COST_PER_W_DC;
-  const principal = cost * ADVANCE_RATE;
-  const takeout = wattsDc * TAKEOUT_PER_W_DC;
-  const interest = noteInterest(principal, apr, days);
-  return {
-    cost,
-    principal,
-    takeout,
-    interest,
-    /** Takeout dollars per dollar of principal + interest. */
-    coverage: takeout / (principal + interest),
-    repaid: principal + interest,
-  };
 }

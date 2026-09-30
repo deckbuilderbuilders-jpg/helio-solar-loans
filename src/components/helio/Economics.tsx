@@ -1,42 +1,60 @@
 import { useMemo, useState } from "react";
 import { Slider } from "@/components/ui/slider";
-import { APR_CAP, APR_FLOOR, LOCKUP_MIN_DAYS, noteInterest } from "@/lib/helio/auction";
+import { Switch } from "@/components/ui/switch";
+import { LOCKUP_MAX_DAYS, noteInterest } from "@/lib/helio/auction";
 import {
-  APPLICATION_FEE_PER_KW,
+  APR_MAX,
+  APR_MIN,
   BATTERY_COST_PER_KWH,
   BATTERY_REBATE_PER_KWH,
-  CREATOR_CASH_MULTIPLE,
-  CREATOR_YIELD_MULTIPLE,
+  COVERAGE_FULL,
+  COVERAGE_MIN,
+  CREATOR_TOTAL_MULTIPLE,
+  FACTOR_ADVANCE,
   SOLAR_COST_PER_W_DC,
-  TAIL_TO_HELIO,
-  TAIL_TO_INSTALLER,
-  TAIL_TO_YIELD,
   batteryForSize,
+  payoutPerDollar,
   projectEconomics,
-  yieldNftAnnualRate,
   type ProjectEconomics,
 } from "@/lib/helio/economics";
 import { econOf } from "@/lib/helio/ledger";
+import { GROUP_LABEL, type RecGroup } from "@/lib/helio/rec";
 import type { HelioNote } from "@/lib/helio/types";
 import { cn } from "@/lib/utils";
 import { Row, pct, usd } from "./ui";
 
 /** Every dollar shows its source. */
 export function EconomicsLine({ n, className }: { n: HelioNote; className?: string }) {
+  const e = econOf(n);
   return (
     <p className={cn("text-[11px] leading-relaxed text-muted-foreground", className)}>
       Build <span className="num text-foreground">{n.kwDc} kW × ${SOLAR_COST_PER_W_DC.toFixed(2)}/W</span> +{" "}
-      <span className="num text-foreground">{n.batteryKwh} kWh × ${BATTERY_COST_PER_KWH}</span>. Takeout: Ameren{" "}
-      <span className="num text-foreground">$300/kW-DC</span> + <span className="num text-foreground">{n.batteryKwh} kWh × ${BATTERY_REBATE_PER_KWH}</span> storage + Illinois
-      Shines first 50% REC at <span className="num text-foreground">$0.845/W</span> (Group A 0–10 kW, customer-owned + EEC).
+      <span className="num text-foreground">{n.batteryKwh} kWh × ${BATTERY_COST_PER_KWH}</span>. REC contract{" "}
+      <span className="num text-foreground">{e.rec.quantity} RECs × ${e.rec.price.toFixed(2)}</span> ({GROUP_LABEL[n.rec.group]}, {n.rec.kwAc} kW-AC, CF{" "}
+      {pct(n.rec.capacityFactor, 2)}). Rebates fixed at $300/kW + {n.batteryKwh} kWh × ${BATTERY_REBATE_PER_KWH}.
     </p>
   );
 }
 
-export function EconomicsTable({ e, apr, days = LOCKUP_MIN_DAYS }: { e: ProjectEconomics; apr: number; days?: number }) {
-  const interest = noteInterest(e.buildCost, apr, days);
+export function RecBreakdown({ e }: { e: ProjectEconomics }) {
+  const r = e.rec;
+  const i = e.recInputs;
   return (
-    <div className="grid gap-6 md:grid-cols-3">
+    <div>
+      <div className="eyebrow mb-2">REC contract (Illinois Shines {i.programYear})</div>
+      <Row label="Size / bin" sub={`${r.category} · ${GROUP_LABEL[i.group]}`} value={`${i.kwAc} kW-AC · ${r.binLabel}`} />
+      <Row label="Quantity" sub={r.qtySource === "Part I/II" ? `lesser of Part I/II · estimate ${r.estimatedQty}` : `15 yr × CF ${pct(i.capacityFactor, 2)}, −0.5%/yr, floored`} value={`${r.quantity} RECs`} />
+      <Row label="Price" sub={`base $${r.basePrice.toFixed(2)}${i.customerOwned ? " + $20 customer-owned" : ""}${i.eec ? " + $5 EEC" : ""}`} value={`$${r.price.toFixed(2)}/REC`} />
+      <Row label="Contract value" value={usd(r.contractValue)} strong />
+    </div>
+  );
+}
+
+export function EconomicsTable({ e, days = LOCKUP_MAX_DAYS }: { e: ProjectEconomics; days?: number }) {
+  const interest = noteInterest(e.buildCost, e.apr, days);
+  const left = e.totalCash - e.buildCost - interest - e.creatorTotal - e.installerFactorShare;
+  return (
+    <div className="grid gap-6 md:grid-cols-4">
       <div>
         <div className="eyebrow mb-2">Build (lender principal)</div>
         <Row label="Solar hardware" sub="$0.80/W-DC" value={usd(e.solarCost - e.installerBase - e.installerDayOneBonus)} />
@@ -44,36 +62,24 @@ export function EconomicsTable({ e, apr, days = LOCKUP_MIN_DAYS }: { e: ProjectE
         <Row label="Day-one bonus" sub="$0.02/W-DC, if built in one day" value={usd(e.installerDayOneBonus)} />
         <Row label="Storage" sub={`${e.batteryKwh} kWh × $225 + $25 install`} value={usd(e.batteryCost)} />
         <Row label="Note size" value={usd(e.buildCost)} strong />
-        <Row label="Application fee (creator)" sub={`$${APPLICATION_FEE_PER_KW}/kW, at risk`} value={usd(e.applicationFee)} muted />
       </div>
+      <RecBreakdown e={e} />
       <div>
-        <div className="eyebrow mb-2">Day 90–120 takeout</div>
-        <Row label="Ameren solar rebate" sub="$300/kW-DC" value={usd(e.amerenSolarRebate)} />
+        <div className="eyebrow mb-2">Cash at day 90–120</div>
+        <Row label="Ameren solar rebate" sub="$300/kW-DC, fixed" value={usd(e.amerenSolarRebate)} />
         <Row label="Ameren storage rebate" sub="$300/kWh" value={usd(e.amerenBatteryRebate)} />
-        <Row label="First REC payment" sub="50% of 15-yr contract" value={usd(e.firstRecPayment)} />
-        <Row label="Collateral held (5%)" sub={`of ${usd(e.recContractTotal)} contract · released later to Yield NFTs`} value={`− ${usd(e.recCollateral)}`} muted />
-        <Row label="Cash that lands" value={usd(e.takeout)} strong />
-        <Row label={`Lender interest @ ${pct(apr, 1)}, ${days}d`} value={`− ${usd(interest)}`} muted />
-        <Row label={`Creator ${CREATOR_CASH_MULTIPLE}x cash`} value={`− ${usd(e.creatorCashBack)}`} muted />
-        {(() => {
-          const left = e.takeout - e.buildCost - interest - e.creatorCashBack;
-          return left >= 0 ? (
-            <Row label="Surplus to HELIO" value={usd(left)} muted />
-          ) : (
-            <Row label="Creator cash deferred" sub="paid from first REC-tail quarters" value={usd(-left)} muted />
-          );
-        })()}
+        <Row label="First REC payment" sub={`${pct(e.rec.firstPct, 0)} at energization`} value={usd(e.firstRecPayment)} />
+        <Row label="Collateral held (5%)" sub="released later to HELIO" value={`− ${usd(e.recCollateral)}`} muted />
+        <Row label="Factored REC tail" sub={`${usd(e.factorFace)} face × ${pct(FACTOR_ADVANCE, 0)}`} value={usd(e.factorProceeds)} />
+        <Row label="Total cash" sub={`${e.coverage.toFixed(2)}x of build`} value={usd(e.totalCash)} strong />
       </div>
       <div>
-        <div className="eyebrow mb-2">Long tail (per year)</div>
-        <Row label="REC tail" sub="50% over 24 quarters" value={usd(e.recTailPerQuarter * 4)} />
-        <Row label="Tail cash" value={usd(e.tailAnnual)} strong />
-        <Row label="Collateral release" sub="one-time, 100% to Yield NFTs" value={usd(e.recCollateral)} />
-        <Row label={`Yield NFTs ${pct(TAIL_TO_YIELD, 0)}`} value={usd(e.tailToYieldAnnual)} />
-        <Row label={`HELIO ${pct(TAIL_TO_HELIO, 0)}`} sub="35% fee less installer" value={usd(e.tailToHelioAnnual)} muted />
-        <Row label={`Installer ${pct(TAIL_TO_INSTALLER, 0)}`} sub="20% of HELIO fee" value={usd(e.tailToInstallerAnnual)} muted />
-        <Row label={`Creator ${CREATOR_YIELD_MULTIPLE}x NFT credit`} value={usd(e.creatorYieldCredit)} muted />
-        <Row label="Customer PPA → HELIO" sub={`${usd(e.ppaMonthly)}/mo · maintenance, not in NFT`} value={usd(e.ppaAnnual)} muted />
+        <div className="eyebrow mb-2">Waterfall</div>
+        <Row label="Lender principal" value={usd(e.buildCost)} />
+        <Row label={`Interest @ ${pct(e.apr, 2)}, ${days}d`} value={usd(interest)} />
+        <Row label={`Creator ${CREATOR_TOTAL_MULTIPLE}x cash`} value={usd(e.creatorTotal)} muted />
+        <Row label="Installer 7% of factor" value={usd(e.installerFactorShare)} muted />
+        <Row label="HELIO" sub="+ collateral later · customer PPA" value={usd(Math.max(0, left))} muted />
       </div>
     </div>
   );
@@ -81,11 +87,12 @@ export function EconomicsTable({ e, apr, days = LOCKUP_MIN_DAYS }: { e: ProjectE
 
 export function EconomicsCalculator() {
   const [kw, setKw] = useState(10);
-  const [apr, setApr] = useState(0.2);
-  const e = useMemo(() => projectEconomics(kw, batteryForSize(kw)), [kw]);
+  const [cf, setCf] = useState(0.1642);
+  const [group, setGroup] = useState<RecGroup>("A");
+  const e = useMemo(() => projectEconomics(kw, batteryForSize(kw), { capacityFactor: cf, group }), [kw, cf, group]);
   return (
     <div className="panel space-y-6 p-5">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>System size</span>
@@ -95,16 +102,24 @@ export function EconomicsCalculator() {
         </div>
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span>Clearing APR</span>
-            <span className="num">{pct(apr, 1)}</span>
+            <span>Capacity factor</span>
+            <span className="num">{pct(cf, 1)}</span>
           </div>
-          <Slider min={APR_FLOOR * 100} max={APR_CAP * 100} step={0.5} value={[apr * 100]} onValueChange={(v) => setApr((v[0] ?? 20) / 100)} />
+          <Slider min={12} max={19} step={0.1} value={[cf * 100]} onValueChange={(v) => setCf((v[0] ?? 16.42) / 100)} />
         </div>
+        <label className="flex items-center justify-between gap-3 text-sm">
+          <span>{group === "B" ? "Group B · ComEd" : "Group A · Ameren"}</span>
+          <Switch checked={group === "B"} onCheckedChange={(b) => setGroup(b ? "B" : "A")} />
+        </label>
       </div>
-      <EconomicsTable e={e} apr={apr} />
-      <p className="text-xs text-muted-foreground">
-        Yield NFT cash-on-cash ≈ <span className="num text-foreground">{pct(yieldNftAnnualRate(e), 1)}</span> a year on note principal, on top of the bridge APR.
-      </p>
+      <div className="flex flex-wrap gap-6 text-sm">
+        <span>Coverage <span className="num text-foreground">{e.coverage.toFixed(2)}x</span></span>
+        <span>APR <span className="num text-volt">{e.listable ? pct(e.apr, 2) : "not listable"}</span></span>
+        <span className="text-muted-foreground">
+          {pct(APR_MAX, 0)} at {COVERAGE_MIN.toFixed(2)}x → {pct(APR_MIN, 0)} at {COVERAGE_FULL.toFixed(2)}x · $1 → ${payoutPerDollar(e.apr, 120).toFixed(3)} in 120 days
+        </span>
+      </div>
+      <EconomicsTable e={e} />
     </div>
   );
 }

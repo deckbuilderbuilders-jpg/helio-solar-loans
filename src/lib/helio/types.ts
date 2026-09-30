@@ -1,19 +1,30 @@
+import type { RecInputs } from "./rec";
+
 export type Address = string;
 
 /**
  * Note lifecycle.
  * 0 Created  — creator paid the $20/kW application fee (at risk)
- * 1 Auction  — reverse Dutch auction open, APR climbing floor → cap
- * 2 Funded   — build fully funded, clearing APR locked, lockup starts
+ * 1 Filling  — open for deposits at the note's fixed APR; points 2x → 1x
+ * 2 Funded   — build fully funded, lockup starts
  * 3 Built    — installer paid base (+ day-one bonus)
- * 4 PTO      — Ameren Permission to Operate, rebates filed
- * 5 Repaid   — takeout landed: lenders repaid principal + interest, creator 3x cash
- * 6 Tail     — REC tail streaming to Yield NFTs
- * 7 Complete — REC tail fully paid
+ * 4 PTO      — Permission to Operate, rebates filed
+ * 5 Repaid   — takeout + factored REC tail landed: lenders P+I, creator 5x, installer, HELIO
+ * 6 Closed   — 5% REC collateral released to HELIO
  */
-export type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type Stage = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-export type NoteStatus = "Auction" | "Funded" | "Building" | "Awaiting takeout" | "Repaid" | "Streaming" | "Complete" | "Failed";
+export type NoteStatus = "Filling" | "Funded" | "Building" | "Awaiting takeout" | "Repaid" | "Closed" | "Failed";
+
+/** The imported Illinois Shines application, as recorded with the note. */
+export interface ApplicationRecord {
+  fileName: string;
+  /** SHA-256 of the uploaded file, hex. Empty when entered by hand. */
+  fileHash: string;
+  /** Fields the creator changed after extraction. */
+  editedFields: string[];
+  importedAt: number;
+}
 
 export interface HelioNote {
   id: string;
@@ -23,52 +34,30 @@ export interface HelioNote {
   kwAc: number;
   kwDc: number;
   batteryKwh: number;
+  rec: RecInputs;
+  application: ApplicationRecord | null;
   creator: Address;
   applicationFee: number;
+  /** Fixed at creation from REC coverage. */
+  apr: number;
   stage: Stage;
   failed: boolean;
   openedAt: number;
-  /** Live principal per lender while the auction is open. */
   deposits: Record<Address, number>;
-  /** Exit-fee redistribution owed to lenders who stayed (1.5% of each withdrawal). */
+  /** Σ amount × deposit time (sec), per lender — interest accrues from each deposit. */
+  timeDollars: Record<Address, number>;
+  points: Record<Address, number>;
   exitBonus: Record<Address, number>;
-  /** Σ principal × APR locked at each deposit, per lender (later = higher APR). */
-  aprDollars?: Record<Address, number>;
-  /** Σ principal × tail multiplier at each deposit, per lender (earlier = up to 1.8x). */
-  weightDollars?: Record<Address, number>;
-  /** APR at the moment the note filled (the top of the book). */
-  clearingApr: number | null;
   fundedAt: number | null;
   dayOne: boolean | null;
-  /** Takeout waterfall results. */
   takeoutReceived: number;
+  factorProceeds: number;
   lendersRepaid: number;
   creatorPaid: number;
-  /** Creator 3x cash not covered at takeout; paid from the first tail quarters. */
-  creatorOwed?: number;
-  /** Illinois Shines 5% collateral released to Yield NFTs. */
-  collateralReleased?: boolean;
-  /** Long tail. */
-  tailQuarters: number;
-  tailReceived: number;
-  /** Cumulative USDC distributed per $1 of Yield NFT weight. */
-  accPerWeight: number;
-  totalWeight: number;
-  helioEarned: number;
   installerEarned: number;
+  helioEarned: number;
+  collateralReleased: boolean;
   createdAt: number;
-}
-
-export interface YieldNft {
-  id: string;
-  noteId: string;
-  owner: Address;
-  /** Dollar weight: lender principal, or the creator's 2x fee credit. */
-  weight: number;
-  kind: "lender" | "creator";
-  /** USDC already pulled by holders of this NFT. */
-  claimed: number;
-  listPrice: number | null;
 }
 
 export interface TxLogEntry {
@@ -83,7 +72,6 @@ export interface LedgerState {
   config: { admin: Address; treasury: Address; installer: Address };
   balances: Record<Address, number>;
   notes: HelioNote[];
-  nfts: YieldNft[];
   log: TxLogEntry[];
   counter: number;
 }

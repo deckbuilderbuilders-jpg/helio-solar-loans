@@ -35,20 +35,19 @@ export function Row({ label, value, sub, strong, muted }: { label: ReactNode; va
 }
 
 const statusStyles: Record<NoteStatus, string> = {
-  Auction: "bg-volt/15 text-volt border-volt/40",
+  Filling: "bg-volt/15 text-volt border-volt/40",
   Funded: "bg-warning/15 text-warning border-warning/40",
   Building: "bg-warning/15 text-warning border-warning/40",
   "Awaiting takeout": "bg-warning/15 text-warning border-warning/40",
   Repaid: "bg-positive/15 text-positive border-positive/40",
-  Streaming: "bg-positive/15 text-positive border-positive/40",
-  Complete: "bg-muted text-muted-foreground border-border",
+  Closed: "bg-muted text-muted-foreground border-border",
   Failed: "bg-destructive/15 text-destructive border-destructive/40",
 };
 
 export function Pill({ state, className }: { state: NoteStatus; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wider", statusStyles[state], className)}>
-      {(state === "Auction" || state === "Streaming") && <span className="size-1.5 animate-pulse-volt rounded-full bg-current" />}
+      {(state === "Filling") && <span className="size-1.5 animate-pulse-volt rounded-full bg-current" />}
       {state}
     </span>
   );
