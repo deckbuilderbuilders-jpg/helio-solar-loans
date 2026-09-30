@@ -12,9 +12,9 @@ export const Route = createFileRoute("/oracle")({
   head: () => ({
     meta: [
       { title: "Oracle console — HELIO" },
-      { name: "description", content: "Admin console: mark builds, record PTO, settle Ameren + Illinois Shines takeout and pay REC tail quarters." },
+      { name: "description", content: "Admin console: mark builds, record PTO, settle Ameren + Illinois Shines takeout, factor the REC tail and release collateral." },
       { property: "og:title", content: "Oracle console — HELIO" },
-      { property: "og:description", content: "Advance notes and inject takeout and tail USDC for the demo." },
+      { property: "og:description", content: "Advance notes and inject takeout USDC for the demo." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -25,15 +25,15 @@ export const Route = createFileRoute("/oracle")({
 function Oracle() {
   const { state, role, connect } = useHelio();
   if (role !== "admin") {
-    return <Empty title="Oracle console is admin-only" body="The oracle writes build, PTO, takeout and tail events so the demo never depends on Illinois servers." cta={<Button variant="volt" onClick={() => connect("admin")}>Load oracle admin</Button>} />;
+    return <Empty title="Oracle console is admin-only" body="The oracle writes build, PTO, takeout and collateral events so the demo never depends on Illinois servers." cta={<Button variant="volt" onClick={() => connect("admin")}>Load oracle admin</Button>} />;
   }
   const b = state.balances;
   return (
     <div className="space-y-8">
       <SectionHead eyebrow="Admin" title="Oracle console" />
       <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
-        <Stat label="HELIO treasury" value={usd(b[state.config.treasury] ?? 0)} sub="fees, exit fees, surplus, 28% tail" />
-        <Stat label="Installer" value={usd(b[state.config.installer] ?? 0)} sub="base + bonus + 7% tail" />
+        <Stat label="HELIO treasury" value={usd(b[state.config.treasury] ?? 0)} sub="fees, exit fees, surplus, collateral" />
+        <Stat label="Installer" value={usd(b[state.config.installer] ?? 0)} sub="base + bonus + 7% of factor" />
         <Stat label="Notes" value={state.notes.length} />
       </div>
       <div className="space-y-4">{state.notes.map((n) => <NoteOps key={n.id} n={n} />)}</div>
@@ -53,11 +53,10 @@ function Oracle() {
 }
 
 function NoteOps({ n }: { n: HelioNote }) {
-  const { now, failNote, markBuilt, markPto, recordTakeout, recordTail, releaseCollateral } = useHelio();
+  const { now, failNote, markBuilt, markPto, recordTakeout, releaseCollateral } = useHelio();
   const e = econOf(n);
   const [dayOne, setDayOne] = useState(true);
   const [takeout, setTakeout] = useState(String(Math.round(e.takeout)));
-  const quarter = e.recTailPerQuarter;
   return (
     <div className="panel flex flex-wrap items-center justify-between gap-4 p-4">
       <div className="min-w-0">
@@ -78,12 +77,10 @@ function NoteOps({ n }: { n: HelioNote }) {
         {n.stage === 4 && (
           <>
             <Input className="h-8 w-28" type="number" value={takeout} onChange={(ev) => setTakeout(ev.target.value)} aria-label="Takeout amount" />
-            <Button size="sm" variant="volt" onClick={() => recordTakeout(n.id, parseFloat(takeout))}>Settle takeout</Button>
+            <Button size="sm" variant="volt" onClick={() => recordTakeout(n.id, parseFloat(takeout))}>Settle takeout + factor tail ({usd(e.factorProceeds)})</Button>
           </>
         )}
-        {n.stage >= 5 && !n.collateralReleased && <Button size="sm" variant="secondary" onClick={() => releaseCollateral(n.id)}>Release collateral ({usd(e.recCollateral)})</Button>}
-        {(n.creatorOwed ?? 0) > 0.01 && <span className="text-[11px] text-muted-foreground">creator owed {usd(n.creatorOwed ?? 0)} from tail</span>}
-        {(n.stage === 5 || n.stage === 6) && <Button size="sm" variant="volt" onClick={() => recordTail(n.id, quarter)}>Pay tail Q{n.tailQuarters + 1} ({usd(quarter)})</Button>}
+        {n.stage === 5 && !n.collateralReleased && <Button size="sm" variant="secondary" onClick={() => releaseCollateral(n.id)}>Release collateral ({usd(e.recCollateral)})</Button>}
       </div>
     </div>
   );
