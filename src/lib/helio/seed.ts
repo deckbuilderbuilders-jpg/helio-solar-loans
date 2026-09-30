@@ -55,7 +55,7 @@ export function seedState(now: number): LedgerState {
   s = faucet(s, DEMO.investor, fee, t0);
   s = createNote(s, DEMO.investor, {
     ...WHITE_HALL,
-    application: { fileName: "ID1172865_20260915_1.pdf", fileHash: "", editedFields: [], importedAt: t0 },
+    application: { fileName: "ID1172865_20260915_1.pdf", fileHash: "a5d69265581e5c0fcf0d1e60e2ba999670c323a4a0a344377ce5c2a721f38478", editedFields: [], importedAt: t0 },
     now: t0,
   }).state;
   return s;
