@@ -22,7 +22,7 @@ export const Route = createFileRoute("/portfolio")({
 function Portfolio() {
   const { state, wallet, balance, now, connect } = useHelio();
   if (!wallet) {
-    return <Empty title="No wallet connected" body="Load the demo lender to see positions and points." cta={<Button variant="volt" onClick={() => connect("investor")}>Load demo lender</Button>} />;
+    return <Empty title="No wallet connected" body="Connect a lender wallet to see positions and WATTS." cta={<Button variant="volt" onClick={() => connect("investor")}>Connect lender wallet</Button>} />;
   }
   const positions = state.notes.filter((n) => (n.deposits[wallet] ?? 0) > 0 && !n.failed);
   const filling = positions.filter((n) => n.stage === 1);

@@ -9,7 +9,7 @@ import * as L from "./ledger";
 import { DEMO, seedState } from "./seed";
 import type { Address, HelioNote, LedgerState } from "./types";
 
-const STORAGE_KEY = "helio:devnet-sim:v7-whitehall";
+const STORAGE_KEY = "helio:devnet-sim:v8-live";
 const WALLET_KEY = "helio:wallet:v3";
 
 export type Role = "investor" | "admin" | "installer";
@@ -98,12 +98,12 @@ export function HelioProvider({ children }: { children: ReactNode }) {
       balance: wallet ? L.balanceOf(s, wallet) : 0,
       connect: (role) => {
         setWallet(roleWallet[role]);
-        toast.success(`Connected ${role === "admin" ? "oracle admin" : role === "installer" ? "installer" : "demo lender"}`, { description: L.short(roleWallet[role]) });
+        toast.success(`Connected ${role === "admin" ? "oracle admin" : role === "installer" ? "installer" : "lender"}`, { description: L.short(roleWallet[role]) });
       },
       disconnect: () => setWallet(null),
       resetDemo: () => {
         setState(seedState(nowSec()));
-        toast.success("Demo reseeded", { description: "2 filling · 1 funded · 1 repaid" });
+        toast.success("Projects reloaded", { description: "Your imported applications only" });
       },
       faucet: (amount = 10_000) => simple("Faucet", (st, t) => L.faucet(st, me(), amount, t)),
       createNote: (a) =>

@@ -1,3 +1,5 @@
+import { useHelio } from "@/lib/helio/store";
+import { econOf, fillFraction } from "@/lib/helio/ledger";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import roof from "@/assets/welcome-roof.jpg";
@@ -109,12 +111,15 @@ function Welcome() {
   const [cf, setCf] = useState(0.1642);
   const e = projectEconomics(kw, batteryForSize(kw), { capacityFactor: cf });
   const interest = noteInterest(e.buildCost, e.apr, LOCKUP_MAX_DAYS);
-  const flagship = projectEconomics(10);
+  const { state } = useHelio();
+  const live = state.notes.find((n) => n.stage === 1 && !n.failed) ?? state.notes.find((n) => !n.failed);
+  const flagship = live ? econOf(live) : projectEconomics(10);
+  const liveLabel = live ? `${live.city.replace(/, IL$/, "")} · ${live.kwDc} kW-DC + ${live.batteryKwh} kWh` : "10 kW-DC + 64 kWh example";
   const comed = projectEconomics(10, 64, { group: "B" });
   const shaded = projectEconomics(10, 64, { capacityFactor: 0.14 });
   const apr = flagship.apr;
   const lend = 10000;
-  const funded = 0.42;
+  const funded = live ? fillFraction(live) : 0;
 
   useEffect(() => {
     try { localStorage.setItem(WELCOMED_KEY, "1"); } catch { /* ignore */ }
@@ -158,7 +163,7 @@ function Welcome() {
       <div className="border-b border-[var(--w-line)] bg-[var(--w-navy)] text-[var(--w-cream)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-6 py-2 font-mono text-[11px] uppercase tracking-widest">
           <span className="flex items-center gap-2"><span className="w-blink inline-block h-2 w-2 rounded-full bg-[var(--w-orange)]" />Filling now</span>
-          <span>Springfield 10 kW + 64 kWh · <span className="text-[var(--w-orange)]">{pct(apr, 2)} APR</span> fixed</span>
+          <span>{liveLabel} · <span className="text-[var(--w-orange)]">{pct(apr, 2)} APR</span> fixed</span>
           <span className="hidden sm:inline">{flagship.coverage.toFixed(2)}× coverage</span>
           <span className="hidden md:inline">{(POINTS_START - (POINTS_START - POINTS_END) * funded).toFixed(2)}× points now</span>
         </div>
@@ -203,7 +208,7 @@ function Welcome() {
             <div className="relative">
               <img src={roof} alt="Solar panels on an Illinois home roof" width={1280} height={896} className="aspect-[4/3] w-full rounded-lg border border-[var(--w-navy)] object-cover" />
               <div className="absolute -bottom-4 -left-4 rounded-md bg-[var(--w-navy)] px-4 py-3 text-[var(--w-cream)]">
-                <div className="font-mono text-[10px] uppercase tracking-widest opacity-70">Springfield · 10 kW-DC + 64 kWh · Ameren DS-1</div>
+                <div className="font-mono text-[10px] uppercase tracking-widest opacity-70">{liveLabel}</div>
                 <div className="font-display text-lg font-bold">{usd(flagship.buildCost * funded)} of {usd(flagship.buildCost)} funded</div>
               </div>
             </div>
@@ -242,7 +247,7 @@ function Welcome() {
               <h2 className="mt-3 font-display text-3xl font-black tracking-tight">No six-year wait. The tail is cashed up front.</h2>
               <p className="mt-4 opacity-80">
                 The other half of the 15-year REC contract is sold at {pct(FACTOR_ADVANCE, 0)} of face the day the system
-                energizes — {usd(flagship.factorProceeds)} on a 10 kW roof. That cushion is what pays the higher rate.
+                energizes — {usd(flagship.factorProceeds)} on this roof. That cushion is what pays the higher rate.
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-widest text-[var(--w-orange)]">
                 {usd(flagship.totalCash)} of cash against {usd(flagship.buildCost)} — {flagship.coverage.toFixed(2)}× coverage
