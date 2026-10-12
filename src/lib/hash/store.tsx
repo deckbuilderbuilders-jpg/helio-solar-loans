@@ -2,16 +2,25 @@ import type React from "react";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { HASH_PER_TH, HOLDER_SHARE, SATS_PER_TH_DAY, UNBOND_FEE, curveFor, hashOut, usdBack } from "./curve";
-import { DEPLOY_FEE, asicById, capacityTh } from "./asics";
+import { DEPLOY_FEE, TH_COST, capacityTh } from "./asics";
 
-export type Status = "Bonding" | "Building" | "Live";
-export type AsicStatus = "Bonding" | "Deploying" | "Live";
+export type Status = "Bonding" | "Finalized" | "Live";
+export type AsicStatus = "Closed" | "Bonding" | "Funded" | "Live";
 
-/** User-facing badge text for each status. */
-export const statusLabel = (st: Status | AsicStatus, asic = false) =>
-  asic
-    ? ({ Bonding: "ASIC Bonding", Deploying: "Deploying", Live: "Live" } as Record<string, string>)[st]
-    : ({ Bonding: "Curve Open", Building: "Initialized", Live: "Live" } as Record<string, string>)[st];
+/** One badge per stage: Bond Project → Project Finalized → Bond ASICs → Miners Funded → Live. */
+export const projectBadge = (p: Project) => (p.status === "Bonding" ? "Bond Project" : "Project Finalized");
+export const asicBadge = (p: Project) =>
+  ({ Closed: "Not open", Bonding: "Bond ASICs", Funded: "Miners Funded", Live: "Live" } as const)[p.asic.status];
+export const stageBadge = (p: Project) =>
+  p.status === "Bonding" ? "Bond Project" : p.asic.status === "Bonding" ? "Bond ASICs" : p.asic.status === "Funded" ? "Miners Funded" : "Live";
+
+export interface AsicCurve {
+  th: number; // planned hashrate = solar capacity
+  raise: number; // miner cost + deploy fee
+  raised: number;
+  status: AsicStatus;
+  holders: Record<string, number>;
+}
 
 export interface Project {
   id: string;
@@ -19,70 +28,57 @@ export interface Project {
   place: string;
   solarKw: number;
   batteryKwh: number;
-  th: number; // base hashrate bought with the project raise
-  raise: number;
+  th: number; // HASH on the startup curve, in TH units (× HASH_PER_TH)
+  raise: number; // site startup: land, application, initial costs
   raised: number;
   recCash: number;
   status: Status;
   holders: Record<string, number>;
-}
-
-export interface AsicCurve {
-  id: string;
-  projectId: string;
-  modelId: string;
-  th: number;
-  raise: number;
-  raised: number;
-  status: AsicStatus;
-  holders: Record<string, number>;
+  asic: AsicCurve;
 }
 
 export interface State {
   genesisTh: number;
   reinvestedTh: number;
   projects: Project[];
-  asics: AsicCurve[];
   usd: number;
   sats: number;
 }
 
 export const ME = "you";
-const KEY = "hash:v1";
+const KEY = "hash:v2";
+
+const asicFor = (solarKw: number): AsicCurve => {
+  const th = capacityTh(solarKw);
+  return { th, raise: Math.round((th * TH_COST + DEPLOY_FEE) / 100) * 100, raised: 0, status: "Closed", holders: {} };
+};
 
 const seed = (): State => ({
   genesisTh: 100,
   reinvestedTh: 0,
   usd: 0,
   sats: 0,
-  asics: [],
   projects: [
     {
       id: "white-hall", name: "King St", place: "White Hall, IL", solarKw: 26.91, batteryKwh: 96,
-      th: 400, raise: 54947, raised: 0, recCash: 44678, status: "Bonding", holders: {},
+      th: 250, raise: 4000, raised: 0, recCash: 44678, status: "Bonding", holders: {}, asic: asicFor(26.91),
     },
   ],
 });
 
-const asicLive = (a: AsicCurve) => a.status === "Live";
-const asicFunded = (a: AsicCurve) => a.status !== "Bonding";
-
-export const usedTh = (s: State, projectId: string) =>
-  (s.projects.find((p) => p.id === projectId)?.th ?? 0) +
-  s.asics.filter((a) => a.projectId === projectId).reduce((t, a) => t + a.th, 0);
-export const freeTh = (s: State, p: Project) => Math.max(0, capacityTh(p.solarKw) - usedTh(s, p.id));
+const funded = (a: AsicCurve) => a.status === "Funded" || a.status === "Live";
 
 export const liveTh = (s: State) =>
-  s.genesisTh + s.reinvestedTh +
-  s.projects.filter((p) => p.status === "Live").reduce((a, p) => a + p.th, 0) +
-  s.asics.filter(asicLive).reduce((a, x) => a + x.th, 0);
+  s.genesisTh + s.reinvestedTh + s.projects.filter((p) => p.asic.status === "Live").reduce((a, p) => a + p.asic.th, 0);
 export const totalHash = (s: State) =>
   s.genesisTh * HASH_PER_TH +
-  s.projects.filter((p) => p.status !== "Bonding").reduce((a, p) => a + p.th * HASH_PER_TH, 0) +
-  s.asics.filter(asicFunded).reduce((a, x) => a + x.th * HASH_PER_TH, 0);
+  s.projects.reduce((a, p) => a + (p.status !== "Bonding" ? p.th : 0) * HASH_PER_TH + (funded(p.asic) ? p.asic.th : 0) * HASH_PER_TH, 0);
 export const myHash = (s: State, liveOnly = true) =>
-  s.projects.filter((p) => !liveOnly || p.status !== "Bonding").reduce((a, p) => a + (p.holders[ME] ?? 0), 0) +
-  s.asics.filter((x) => !liveOnly || asicFunded(x)).reduce((a, x) => a + (x.holders[ME] ?? 0), 0);
+  s.projects.reduce(
+    (a, p) =>
+      a + (!liveOnly || p.status !== "Bonding" ? p.holders[ME] ?? 0 : 0) + (!liveOnly || funded(p.asic) ? p.asic.holders[ME] ?? 0 : 0),
+    0,
+  );
 export const satsPerDay = (s: State) => {
   const share = myHash(s) / totalHash(s);
   return share * liveTh(s) * SATS_PER_TH_DAY * HOLDER_SHARE;
@@ -93,9 +89,6 @@ interface Ctx {
   faucet: () => void;
   bond: (id: string, usd: number) => void;
   unbond: (id: string) => void;
-  advance: (id: string) => void;
-  startAsic: (projectId: string, modelId: string) => string | null;
-  buyAsic: (projectId: string, modelId: string) => void;
   bondAsic: (id: string, usd: number) => void;
   unbondAsic: (id: string) => void;
   asicLiveNow: (id: string) => void;
@@ -114,7 +107,7 @@ export function HashProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) set({ ...seed(), ...JSON.parse(raw), asics: JSON.parse(raw).asics ?? [] });
+      if (raw) set({ ...seed(), ...JSON.parse(raw) });
     } catch { /* ignore */ }
     setLoaded(true);
   }, []);
@@ -125,15 +118,6 @@ export function HashProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Ctx>(() => {
     const patch = (id: string, f: (p: Project) => Project) =>
       set((x) => ({ ...x, projects: x.projects.map((p) => (p.id === id ? f(p) : p)) }));
-    const patchA = (id: string, f: (a: AsicCurve) => AsicCurve) =>
-      set((x) => ({ ...x, asics: x.asics.map((a) => (a.id === id ? f(a) : a)) }));
-    const canFit = (projectId: string, modelId: string) => {
-      const p = s.projects.find((q) => q.id === projectId);
-      if (!p || p.status === "Bonding") { toast.error("Project must be initialized first"); return null; }
-      const m = asicById(modelId);
-      if (freeTh(s, p) < m.th) { toast.error("Not enough open power on this project"); return null; }
-      return m;
-    };
     return {
       s,
       faucet: () => set((x) => ({ ...x, usd: x.usd + 1000 })),
@@ -145,11 +129,12 @@ export function HashProvider({ children }: { children: ReactNode }) {
         const fills = p.raised + amt >= p.raise - 0.01;
         set((x) => ({ ...x, usd: x.usd - amt }));
         patch(id, (q) => ({
-          ...q, raised: q.raised + amt, status: fills ? "Building" : q.status,
+          ...q, raised: q.raised + amt, status: fills ? "Finalized" : q.status,
+          asic: fills ? { ...q.asic, status: "Bonding" } : q.asic,
           holders: { ...q.holders, [ME]: (q.holders[ME] ?? 0) + got },
         }));
         toast.success(`Minted ${got.toLocaleString(undefined, { maximumFractionDigits: 0 })} HASH`);
-        if (fills) toast.success(`${p.name} initialized. USDC locked. Awaiting ASIC deployment.`);
+        if (fills) toast.success(`${p.name} finalized. ASIC curve is open — fund the miners.`);
       },
       unbond: (id) => {
         const p = s.projects.find((q) => q.id === id)!;
@@ -160,60 +145,39 @@ export function HashProvider({ children }: { children: ReactNode }) {
         patch(id, (q) => ({ ...q, raised: q.raised - back, holders: { ...q.holders, [ME]: 0 } }));
         toast(`Pulled $${(back - UNBOND_FEE).toFixed(2)} (−$${UNBOND_FEE} fee)`);
       },
-      advance: (id) => {
-        const p = s.projects.find((q) => q.id === id)!;
-        if (p.status !== "Building") return;
-        patch(id, (q) => ({ ...q, status: "Live" }));
-        const extra = Math.round(p.recCash / 15 / 10) * 10;
-        set((x) => ({ ...x, reinvestedTh: x.reinvestedTh + extra }));
-        toast.success(`${p.name} is live. REC cash bought +${extra} TH.`);
-      },
-      startAsic: (projectId, modelId) => {
-        const m = canFit(projectId, modelId);
-        if (!m) return null;
-        const id = `${modelId}-${Date.now().toString(36)}`;
-        set((x) => ({ ...x, asics: [...x.asics, { id, projectId, modelId, th: m.th, raise: m.price + DEPLOY_FEE, raised: 0, status: "Bonding", holders: {} }] }));
-        toast.success(`${m.model} curve opened`);
-        return id;
-      },
-      buyAsic: (projectId, modelId) => {
-        const m = canFit(projectId, modelId);
-        if (!m) return;
-        const cost = m.price + DEPLOY_FEE;
-        if (s.usd < cost) { toast.error("Not enough USDC"); return; }
-        const id = `${modelId}-${Date.now().toString(36)}`;
-        set((x) => ({
-          ...x, usd: x.usd - cost,
-          asics: [...x.asics, { id, projectId, modelId, th: m.th, raise: cost, raised: cost, status: "Deploying", holders: { [ME]: m.th * HASH_PER_TH } }],
-        }));
-        toast.success(`Bought ${m.model}. Minted ${(m.th * HASH_PER_TH).toLocaleString()} HASH`);
-      },
       bondAsic: (id, usd) => {
-        const a = s.asics.find((q) => q.id === id)!;
+        const p = s.projects.find((q) => q.id === id)!;
+        const a = p.asic;
+        if (a.status !== "Bonding") { toast.error("ASIC curve opens when the project curve hits 100%"); return; }
         const amt = Math.min(usd, a.raise - a.raised, s.usd);
-        if (amt <= 0 || a.status !== "Bonding") return;
+        if (amt <= 0) return;
         const got = hashOut(curveFor(a.raise, a.th), a.raised, amt);
         const fills = a.raised + amt >= a.raise - 0.01;
         set((x) => ({ ...x, usd: x.usd - amt }));
-        patchA(id, (q) => ({
-          ...q, raised: q.raised + amt, status: fills ? "Deploying" : q.status,
-          holders: { ...q.holders, [ME]: (q.holders[ME] ?? 0) + got },
+        patch(id, (q) => ({
+          ...q,
+          asic: { ...q.asic, raised: q.asic.raised + amt, status: fills ? "Funded" : "Bonding", holders: { ...q.asic.holders, [ME]: (q.asic.holders[ME] ?? 0) + got } },
         }));
         toast.success(`Minted ${got.toLocaleString(undefined, { maximumFractionDigits: 0 })} HASH`);
-        if (fills) toast.success(`${asicById(a.modelId).model} funded. Deploying.`);
+        if (fills) toast.success(`Miners funded for ${p.name}. Deploying.`);
       },
       unbondAsic: (id) => {
-        const a = s.asics.find((q) => q.id === id)!;
+        const p = s.projects.find((q) => q.id === id)!;
+        const a = p.asic;
         const h = a.holders[ME] ?? 0;
         if (!h || a.status !== "Bonding") return;
         const back = usdBack(curveFor(a.raise, a.th), a.raised, h);
         set((x) => ({ ...x, usd: x.usd + Math.max(0, back - UNBOND_FEE) }));
-        patchA(id, (q) => ({ ...q, raised: q.raised - back, holders: { ...q.holders, [ME]: 0 } }));
+        patch(id, (q) => ({ ...q, asic: { ...q.asic, raised: q.asic.raised - back, holders: { ...q.asic.holders, [ME]: 0 } } }));
         toast(`Pulled $${(back - UNBOND_FEE).toFixed(2)} (−$${UNBOND_FEE} fee)`);
       },
       asicLiveNow: (id) => {
-        patchA(id, (q) => (q.status === "Deploying" ? { ...q, status: "Live" } : q));
-        toast.success("Miner is live");
+        const p = s.projects.find((q) => q.id === id)!;
+        if (p.asic.status !== "Funded") return;
+        const extra = Math.round(p.recCash / 15 / 10) * 10;
+        patch(id, (q) => ({ ...q, status: "Live", asic: { ...q.asic, status: "Live" } }));
+        set((x) => ({ ...x, reinvestedTh: x.reinvestedTh + extra }));
+        toast.success(`${p.name} is live. REC cash bought +${extra} TH.`);
       },
       mine: (days) => set((x) => ({ ...x, sats: x.sats + satsPerDay(x) * days })),
       claim: () => {
