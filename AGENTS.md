@@ -4,3 +4,4 @@
 - src/lib/hash/store.tsx holds all state transitions (bond, unbond, go live, mine, claim) in localStorage. Why: pages stay thin; simple devnet simulation.
 - Keep the app minimal: Projects, Project, My HASH, Welcome. Why: user wants maximum simplicity.
 - Welcome-only styling lives under .welcome-page in global CSS and welcome components; keep it scoped so redesigns do not alter app screens.
+- Welcome process progress follows native scrolling through a sticky section; reduced-motion renders all steps statically. Why: sequential storytelling without trapping wheel, touch, or keyboard navigation.
