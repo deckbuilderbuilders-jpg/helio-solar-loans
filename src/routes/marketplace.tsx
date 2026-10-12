@@ -7,9 +7,9 @@ import { freeTh, useHash } from "@/lib/hash/store";
 type Sort = "efficiency" | "price" | "power" | "stock";
 
 export const Route = createFileRoute("/marketplace")({
-  validateSearch: (q: Record<string, unknown>): { project?: string; sort: Sort } => ({
-    project: typeof q.project === "string" ? q.project : undefined,
-    sort: (["efficiency", "price", "power", "stock"].includes(q.sort as string) ? q.sort : "efficiency") as Sort,
+  validateSearch: (q: Record<string, unknown>): { project?: string | undefined; sort: Sort } => ({
+    project: typeof q["project"] === "string" ? q["project"] : undefined,
+    sort: (["efficiency", "price", "power", "stock"].includes(q["sort"] as string) ? q["sort"] : "efficiency") as Sort,
   }),
   head: () => ({
     meta: [
