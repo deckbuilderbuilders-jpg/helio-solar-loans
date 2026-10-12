@@ -8,6 +8,7 @@ import { Flow, Trust } from "@/components/welcome/Flow";
 import { CurveChart } from "@/components/welcome/CurveChart";
 import { Closing, Faq, NetworkStrip, ProjectSpotlight } from "@/components/welcome/Proof";
 import { Reveal } from "@/components/welcome/Reveal";
+import { Loader } from "@/components/welcome/Loader";
 
 export const Route = createFileRoute("/welcome")({
   head: () => ({ meta: [
