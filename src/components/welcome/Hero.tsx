@@ -78,7 +78,7 @@ function Reading({ label, live, sim, children }: { label: string; live: boolean;
     <div className="p-3 md:p-5">
       <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground md:text-xs">
         <span className={`size-1.5 rounded-full ${live ? "animate-pulse-volt bg-volt" : "bg-muted-foreground/50"}`} />
-        {live ? "Live" : sim ? "Simulated" : "Network"} · <span className="hidden sm:inline">{label}</span>
+        {live ? "Live" : sim ? "Simulated" : "Network"}<span className="hidden sm:inline"> · {label}</span>
       </div>
       <div className="mt-1 font-mono text-lg tabular-nums md:text-3xl">{children}</div>
       <div className="font-mono text-[10px] text-muted-foreground sm:hidden">{label}</div>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Hero } from "@/components/welcome/Hero";
 import { Pipeline, STEPS } from "@/components/welcome/Pipeline";
 import { CurveChart } from "@/components/welcome/CurveChart";
@@ -22,7 +22,8 @@ export const Route = createFileRoute("/welcome")({
 });
 
 function Gate({ onDone }: { onDone: () => void }) {
-  useEffect(() => { const t = setTimeout(onDone, 1400); return () => clearTimeout(t); }, [onDone]);
+  const done = useRef(onDone); done.current = onDone;
+  useEffect(() => { const t = setTimeout(() => done.current(), 1400); return () => clearTimeout(t); }, []);
   return (
     <motion.div aria-hidden className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-foreground px-6 text-background"
       initial={{ y: 0 }} exit={{ y: "-100%" }} transition={{ duration: 0.7, ease: [0.7, 0, 0.2, 1] }}>
