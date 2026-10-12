@@ -1,7 +1,7 @@
-import { motion, useReducedMotion } from "motion/react";
-import { useState } from "react";
-import { ArrowRight, Banknote, Hammer, Sun, Cpu, Bitcoin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { useRef, useState } from "react";
+import { ArrowDown, Banknote, Hammer, Sun, Cpu, Bitcoin } from "lucide-react";
+import network from "@/assets/welcome-network.jpg";
 
 export const STEPS = [
   ["Bond", "Choose a project. Bond USDC and receive HASH. Early buyers get more HASH."],
@@ -11,19 +11,44 @@ export const STEPS = [
   ["Earn", "80% of mined Bitcoin goes to HASH holders. The DAO keeps 20% to operate."],
 ] as const;
 const ICONS = [Banknote, Hammer, Sun, Cpu, Bitcoin];
+const CALLOUTS = ["USDC → HASH", "SOLAR + STORAGE + MINERS", "SUNLIGHT → ELECTRICITY", "ONE SHARED HASHRATE", "80% HOLDERS / 20% DAO"];
 
 export function Pipeline() {
+  const ref = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const reduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  useMotionValueEvent(scrollYProgress, "change", (v) => setActive(Math.min(4, Math.max(0, Math.floor(v * 5)))));
+  const step = STEPS[active] ?? STEPS[0];
+  const Icon = ICONS[active] ?? Sun;
   return (
-    <section id="how-it-works" className="scroll-mt-8 border-b border-border">
-      <div className="welcome-container py-16 md:py-20">
-        <div className="flex flex-wrap items-end justify-between gap-4"><div><div className="welcome-kicker">THE PROCESS / 01—05</div><h2 className="welcome-heading mt-4">Your dollars. Real machines.</h2></div><p className="max-w-xs text-sm text-muted-foreground">From a solar project to your share of the Bitcoin.</p></div>
-        <ol className="mt-10 grid grid-cols-5 border-y border-border">
-          {STEPS.map(([title], i) => { const Icon = ICONS[i] ?? Sun; return <li key={title} className="min-w-0 border-r border-border last:border-r-0"><Button variant="ghost" onClick={() => setActive(i)} aria-pressed={active === i} className={`welcome-station relative flex h-36 w-full flex-col gap-3 whitespace-normal rounded-none px-1 md:h-44 ${active === i ? "bg-secondary" : ""}`}><span className="absolute left-3 top-3 font-mono text-[10px] text-muted-foreground">0{i + 1}</span><Icon className="!size-7 md:!size-9" strokeWidth={1.25} /><span className="font-display text-sm md:text-xl">{title}</span>{active === i && <motion.span {...(reduce ? {} : { layoutId: "station-line" })} className="absolute inset-x-0 bottom-0 h-0.5 bg-volt" />}</Button></li>; })}
-        </ol>
-        <div className="mt-6 flex min-h-16 items-start gap-4"><ArrowRight size={18} className="mt-0.5 shrink-0" /><motion.p key={active} initial={reduce ? false : { opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl text-sm leading-relaxed text-muted-foreground">{(STEPS[active] ?? STEPS[0])[1]}</motion.p></div>
-      </div>
+    <section ref={ref} id="how-it-works" className={`welcome-process border-b border-border ${reduce ? "welcome-process-static" : ""}`} aria-label="How HELIO works">
+      {reduce ? <div className="welcome-container py-16"><div className="welcome-kicker">THE PROCESS / 01—05</div><h2 className="welcome-heading mt-4">Your dollars. Real machines.</h2>{STEPS.map(([title, text], i) => <div key={title} className="border-b border-border py-8"><span className="welcome-kicker">0{i + 1}</span><h3 className="welcome-heading mt-2">{title}</h3><p className="mt-4 max-w-xl">{text}</p></div>)}</div> :
+      <div className="welcome-process-screen">
+        <div className="welcome-container welcome-process-inner">
+          <div className="flex items-center justify-between gap-4"><span className="welcome-kicker">YOUR DOLLARS. REAL MACHINES.</span><span className="welcome-kicker">0{active + 1} / 05</span></div>
+          <ol className="welcome-process-track mt-5 grid grid-cols-5 border-y border-border" aria-label="Process progress">
+            {STEPS.map(([title], i) => <li key={title} aria-current={active === i ? "step" : undefined} className={`welcome-process-label ${active === i ? "is-current" : ""}`}><span className="font-mono">0{i + 1}</span><span>{title}</span></li>)}
+            <motion.div className="welcome-process-progress" style={{ scaleX }} />
+          </ol>
+          <div className="welcome-process-stage">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={active} className="welcome-process-copy" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ duration: 0.3 }}>
+                <span className="welcome-step-icon"><Icon size={32} strokeWidth={1.5} /></span>
+                <h2 className="welcome-heading mt-5">{step[0]}.</h2>
+                <p className="mt-5 max-w-lg">{step[1]}</p>
+              </motion.div>
+            </AnimatePresence>
+            <div className={`welcome-process-art welcome-art-${active}`} aria-hidden="true">
+              <motion.img src={network} alt="" animate={{ x: active === 1 ? "5%" : active === 3 ? "-5%" : "0%", scale: active === 1 || active === 3 ? 1.1 : 1 }} transition={{ duration: 0.8 }} />
+              <div className="welcome-energy-track"><span /><span /><span /></div>
+              <AnimatePresence mode="wait"><motion.div key={active} className="welcome-art-caption" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>{CALLOUTS[active]}</motion.div></AnimatePresence>
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-4"><span className="welcome-kicker">SUNLIGHT IN. BITCOIN OUT.</span><span className="welcome-scroll-cue font-mono">{active === 4 ? "Continue" : "Scroll"}<ArrowDown size={16} /></span></div>
+        </div>
+      </div>}
     </section>
   );
 }
