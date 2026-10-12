@@ -64,7 +64,7 @@ export function Hero() {
       {/* readings pinned to the bottom of the photo */}
       <div className="absolute inset-x-0 bottom-0 mx-auto max-w-7xl px-5 pb-6 md:px-10">
         <div className="grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border bg-background/85 backdrop-blur-sm">
-          <Reading label="Network hashrate" live={live}><Ticker value={th} decimals={1} /> TH</Reading>
+          <Reading label="Hashrate" live={live}><Ticker value={th} decimals={1} /> TH</Reading>
           <Reading label="Sats mined · 24h" live={live} sim={!live}><Ticker value={live ? pool!.sats24h : Math.round(liveTh(s) * 50)} /></Reading>
           <Reading label="Miner status" live={live} sim={!live}>{live ? (pool!.online ? "Online" : "Offline") : "Online"}</Reading>
         </div>
