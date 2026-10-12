@@ -1,4 +1,3 @@
 # Roadmap
-- [x] Rebuild as solar Bitcoin mining DAO (bond USDC -> HASH, 80/20 BTC)
-- [ ] Move projects to Lovable Cloud so everyone sees the same data
-- [ ] On-chain program for the curve
+- [ ] Welcome page redesign to Nomu quality (hero image + energy flow, physical pipeline, curve centerpiece, proof strips, polish)
+- [ ] Live miner data from mining pool on welcome, projects, portfolio — blocked: need pool name + read-only key
