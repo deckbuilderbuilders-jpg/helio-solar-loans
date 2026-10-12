@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUpRight, Sun } from "lucide-react";
+import { ArrowUpRight, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import hero from "@/assets/welcome-network.jpg";
 
@@ -30,7 +30,6 @@ export function Hero() {
         <Button asChild variant="volt" size="lg" className="mt-7 h-12 gap-6 rounded-md px-6 shadow-none"><Link to="/">Explore projects <ArrowUpRight /></Link></Button>
       </motion.div>
       <div className="welcome-equipment-labels pointer-events-none absolute inset-x-0 bottom-9 mx-auto grid max-w-5xl grid-cols-3 text-center font-mono text-[10px] uppercase md:text-xs"><span>01 / Solar</span><span>02 / Storage</span><span>03 / Mining</span></div>
-      <a href="#how-it-works" className="absolute bottom-8 right-6 hidden items-center gap-2 font-mono text-xs md:flex">The process <ArrowDown size={14} /></a>
       <span className="absolute bottom-3 left-5 font-mono text-[9px] text-muted-foreground">SYSTEM ILLUSTRATION</span>
     </section>
   );
