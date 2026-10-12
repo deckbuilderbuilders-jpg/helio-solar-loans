@@ -41,3 +41,16 @@ The gap is craft, not structure. The plan keeps the page order and fixes the fiv
 - Curve chart is sampled from `src/lib/hash/curve.ts`. Network figures come from `useHash` store selectors.
 - Hero image is generated to `src/assets/welcome-hero.jpg` (premium tier). Display font is loaded via `<link>` in `__root.tsx` and mapped in `styles.css` `@theme`.
 - Verify with Playwright screenshots at 1280 and 390, plus a check of the build log.
+
+## 6. Live data from the miner that's already running
+Real numbers from your mining pool replace the simulated ones on the welcome page, the Projects page and your portfolio.
+
+- **Connecting the pool:** you create a **read-only** key in your pool's dashboard and paste it into a secure form. It's never shown in the app. Before building, I need to know which pool you use (Braiins, Luxor, F2Pool, Ocean, ViaBTC or another).
+- **What we read:** live hashrate (TH/s), whether the miner is online, sats mined in the last 24h and in total, and the pool balance.
+- **Welcome page:** a "LIVE" badge with a pulse next to the real hashrate and sats-today numbers. If the pool can't be reached, it shows the last reading with its time instead of made-up numbers.
+- **Projects and Portfolio:** network hashrate is your 100 TH plus the live miner. Your portfolio shows your share of what's actually been mined: your HASH divided by all HASH, times 80% of the sats.
+- **Updates:** refreshed about every 60 seconds, which is the most pools allow.
+
+### Technical details (live data)
+- Store the pool key with the secure-secret form, read only on the server. A `src/lib/hash/pool.functions.ts` server function calls the pool's API, maps the reply to `{ hashrateTH, online, sats24h, satsTotal, updatedAt }` and caches it for 60s.
+- On the page, React Query polls every 60s. The store blends live miner TH with the base network TH, so the curve math is unchanged.
