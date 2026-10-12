@@ -10,39 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DocsRouteImport } from './routes/docs'
-import { Route as OracleRouteImport } from './routes/oracle'
-import { Route as OriginateRouteImport } from './routes/originate'
-import { Route as PointsRouteImport } from './routes/points'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
-import { Route as ProjectsRouteImport } from './routes/projects'
-import { Route as SolarRouteImport } from './routes/solar'
 import { Route as WelcomeRouteImport } from './routes/welcome'
-import { Route as ProjectIdRouteImport } from './routes/project/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRoute = DocsRouteImport.update({
-  id: '/docs',
-  path: '/docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OracleRoute = OracleRouteImport.update({
-  id: '/oracle',
-  path: '/oracle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OriginateRoute = OriginateRouteImport.update({
-  id: '/originate',
-  path: '/originate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PointsRoute = PointsRouteImport.update({
-  id: '/points',
-  path: '/points',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfolioRoute = PortfolioRouteImport.update({
@@ -50,114 +23,40 @@ const PortfolioRoute = PortfolioRouteImport.update({
   path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsRoute = ProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SolarRoute = SolarRouteImport.update({
-  id: '/solar',
-  path: '/solar',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectIdRoute = ProjectIdRouteImport.update({
-  id: '/project/$id',
-  path: '/project/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/docs': typeof DocsRoute
-  '/oracle': typeof OracleRoute
-  '/originate': typeof OriginateRoute
-  '/points': typeof PointsRoute
   '/portfolio': typeof PortfolioRoute
-  '/projects': typeof ProjectsRoute
-  '/solar': typeof SolarRoute
   '/welcome': typeof WelcomeRoute
-  '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/docs': typeof DocsRoute
-  '/oracle': typeof OracleRoute
-  '/originate': typeof OriginateRoute
-  '/points': typeof PointsRoute
   '/portfolio': typeof PortfolioRoute
-  '/projects': typeof ProjectsRoute
-  '/solar': typeof SolarRoute
   '/welcome': typeof WelcomeRoute
-  '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/docs': typeof DocsRoute
-  '/oracle': typeof OracleRoute
-  '/originate': typeof OriginateRoute
-  '/points': typeof PointsRoute
   '/portfolio': typeof PortfolioRoute
-  '/projects': typeof ProjectsRoute
-  '/solar': typeof SolarRoute
   '/welcome': typeof WelcomeRoute
-  '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/docs'
-    | '/oracle'
-    | '/originate'
-    | '/points'
-    | '/portfolio'
-    | '/projects'
-    | '/solar'
-    | '/welcome'
-    | '/project/$id'
+  fullPaths: '/' | '/portfolio' | '/welcome'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/docs'
-    | '/oracle'
-    | '/originate'
-    | '/points'
-    | '/portfolio'
-    | '/projects'
-    | '/solar'
-    | '/welcome'
-    | '/project/$id'
-  id:
-    | '__root__'
-    | '/'
-    | '/docs'
-    | '/oracle'
-    | '/originate'
-    | '/points'
-    | '/portfolio'
-    | '/projects'
-    | '/solar'
-    | '/welcome'
-    | '/project/$id'
+  to: '/' | '/portfolio' | '/welcome'
+  id: '__root__' | '/' | '/portfolio' | '/welcome'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DocsRoute: typeof DocsRoute
-  OracleRoute: typeof OracleRoute
-  OriginateRoute: typeof OriginateRoute
-  PointsRoute: typeof PointsRoute
   PortfolioRoute: typeof PortfolioRoute
-  ProjectsRoute: typeof ProjectsRoute
-  SolarRoute: typeof SolarRoute
   WelcomeRoute: typeof WelcomeRoute
-  ProjectIdRoute: typeof ProjectIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -169,53 +68,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/oracle': {
-      id: '/oracle'
-      path: '/oracle'
-      fullPath: '/oracle'
-      preLoaderRoute: typeof OracleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/originate': {
-      id: '/originate'
-      path: '/originate'
-      fullPath: '/originate'
-      preLoaderRoute: typeof OriginateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/points': {
-      id: '/points'
-      path: '/points'
-      fullPath: '/points'
-      preLoaderRoute: typeof PointsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/portfolio': {
       id: '/portfolio'
       path: '/portfolio'
       fullPath: '/portfolio'
       preLoaderRoute: typeof PortfolioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects': {
-      id: '/projects'
-      path: '/projects'
-      fullPath: '/projects'
-      preLoaderRoute: typeof ProjectsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/solar': {
-      id: '/solar'
-      path: '/solar'
-      fullPath: '/solar'
-      preLoaderRoute: typeof SolarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/welcome': {
@@ -225,27 +82,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/project/$id': {
-      id: '/project/$id'
-      path: '/project/$id'
-      fullPath: '/project/$id'
-      preLoaderRoute: typeof ProjectIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DocsRoute: DocsRoute,
-  OracleRoute: OracleRoute,
-  OriginateRoute: OriginateRoute,
-  PointsRoute: PointsRoute,
   PortfolioRoute: PortfolioRoute,
-  ProjectsRoute: ProjectsRoute,
-  SolarRoute: SolarRoute,
   WelcomeRoute: WelcomeRoute,
-  ProjectIdRoute: ProjectIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
