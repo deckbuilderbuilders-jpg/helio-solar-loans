@@ -110,7 +110,6 @@ function Calculator() {
   const room = EX_RAISE - raised;
   const amt = Math.min(usd, room);
   const hash = hashOut(c, raised, amt);
-  const lateHash = hashOut(c, EX_RAISE - Math.min(amt, EX_RAISE * 0.05) - 1, Math.min(amt, EX_RAISE * 0.05));
   const th = hash / HASH_PER_TH;
   const sats = th * SATS_PER_TH_DAY * HOLDER_SHARE;
   const avg = hashOut(c, 0, EX_RAISE) / EX_RAISE;
@@ -121,10 +120,9 @@ function Calculator() {
     const f = i / 40;
     return [f, price(c, f * EX_RAISE)] as const;
   });
-  const pMax = pts[pts.length - 1][1];
+  const pMax = price(c, EX_RAISE);
   const path = pts.map(([f, p], i) => `${i ? "L" : "M"}${f * 300},${120 - (p / pMax) * 110}`).join(" ");
   const dotY = 120 - (price(c, raised) / pMax) * 110;
-  void lateHash;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
