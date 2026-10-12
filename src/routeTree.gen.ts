@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ProjectIdRouteImport } from './routes/project/$id'
@@ -17,6 +18,11 @@ import { Route as ProjectIdRouteImport } from './routes/project/$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PortfolioRoute = PortfolioRouteImport.update({
@@ -37,12 +43,14 @@ const ProjectIdRoute = ProjectIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/marketplace': typeof MarketplaceRoute
   '/portfolio': typeof PortfolioRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/marketplace': typeof MarketplaceRoute
   '/portfolio': typeof PortfolioRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
@@ -50,20 +58,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/marketplace': typeof MarketplaceRoute
   '/portfolio': typeof PortfolioRoute
   '/welcome': typeof WelcomeRoute
   '/project/$id': typeof ProjectIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/portfolio' | '/welcome' | '/project/$id'
+  fullPaths: '/' | '/marketplace' | '/portfolio' | '/welcome' | '/project/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/portfolio' | '/welcome' | '/project/$id'
-  id: '__root__' | '/' | '/portfolio' | '/welcome' | '/project/$id'
+  to: '/' | '/marketplace' | '/portfolio' | '/welcome' | '/project/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/marketplace'
+    | '/portfolio'
+    | '/welcome'
+    | '/project/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MarketplaceRoute: typeof MarketplaceRoute
   PortfolioRoute: typeof PortfolioRoute
   WelcomeRoute: typeof WelcomeRoute
   ProjectIdRoute: typeof ProjectIdRoute
@@ -76,6 +92,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/portfolio': {
@@ -104,6 +127,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MarketplaceRoute: MarketplaceRoute,
   PortfolioRoute: PortfolioRoute,
   WelcomeRoute: WelcomeRoute,
   ProjectIdRoute: ProjectIdRoute,
