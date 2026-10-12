@@ -15,7 +15,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-6">
             <Link to="/" className="font-display text-lg font-semibold">HELIO</Link>
             <nav className="flex gap-1 text-sm">
-              {([["/", "Projects"], ["/marketplace", "Marketplace"], ["/portfolio", "My HASH"]] as const).map(([to, label]) => (
+              {([["/", "Projects"], ["/portfolio", "My HASH"]] as const).map(([to, label]) => (
                 <Link key={to} to={to} activeOptions={{ exact: true }} className="rounded-sm px-3 py-1.5 text-muted-foreground hover:text-foreground" activeProps={{ className: "rounded-sm px-3 py-1.5 bg-secondary text-foreground" }}>
                   {label}
                 </Link>

@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Stat, fmt } from "@/components/hash/Shell";
 import { Button } from "@/components/ui/button";
 import { usePool } from "@/lib/hash/usePool";
-import { liveTh, myHash, satsPerDay, totalHash, useHash } from "@/lib/hash/store";
+import { ME, liveTh, stageBadge, myHash, satsPerDay, totalHash, useHash } from "@/lib/hash/store";
 
 export const Route = createFileRoute("/portfolio")({
   head: () => ({
@@ -34,10 +34,17 @@ function Portfolio() {
         <Stat label="Sats per day" value={fmt(mined24 ?? satsPerDay(s))} sub={mined24 !== null ? "Live from pool, after 20% DAO cut" : "Estimate, after 20% DAO cut"} />
         <Stat label="Ready to claim" value={`${fmt(s.sats)} sats`} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Stat label="Projects joined" value={fmt(s.projects.filter((p) => (p.holders["you"] ?? 0) > 0).length)} />
-        <Stat label="ASICs funded" value={fmt(s.asics.filter((a) => (a.holders["you"] ?? 0) > 0).length)} sub={`${fmt(s.asics.filter((a) => (a.holders["you"] ?? 0) > 0 && a.status === "Bonding").length)} still bonding`} />
-      </div>
+      <section className="space-y-3">
+        <h2 className="font-display text-2xl font-semibold">Positions</h2>
+        {s.projects.filter((p) => (p.holders[ME] ?? 0) + (p.asic.holders[ME] ?? 0) > 0).length === 0 && <p className="text-muted-foreground">No positions yet.</p>}
+        {s.projects.filter((p) => (p.holders[ME] ?? 0) + (p.asic.holders[ME] ?? 0) > 0).map((p) => (
+          <Link key={p.id} to="/project/$id" params={{ id: p.id }} className="grid gap-3 rounded-lg border border-border bg-card p-4 hover:border-primary sm:grid-cols-[1fr_1fr_1fr]">
+            <div><div className="font-semibold">{p.name}</div><div className="text-sm text-muted-foreground">{stageBadge(p)}</div></div>
+            <div><div className="eyebrow">Project curve</div><div className="num">{fmt(p.holders[ME] ?? 0)} HASH · {Math.floor((p.raised / p.raise) * 100)}%</div></div>
+            <div><div className="eyebrow">ASIC curve</div><div className="num">{p.asic.status === "Closed" ? "Not open" : `${fmt(p.asic.holders[ME] ?? 0)} HASH · ${Math.floor((p.asic.raised / p.asic.raise) * 100)}%`}</div></div>
+          </Link>
+        ))}
+      </section>
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border border-border bg-card px-5 py-4 text-sm">
         <span className="flex items-center gap-2 font-mono text-xs uppercase">
           <span className={`size-2 rounded-full ${pool?.ok ? "bg-volt animate-pulse" : "bg-muted-foreground"}`} />

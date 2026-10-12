@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Bar, Stat, fmt, usd } from "@/components/hash/Shell";
-import { curveFor, price } from "@/lib/hash/curve";
-import { liveTh, statusLabel, totalHash, useHash } from "@/lib/hash/store";
+import { Stat, fmt } from "@/components/hash/Shell";
+import { Badge, TwoStage } from "@/components/hash/Stages";
+import { liveTh, stageBadge, totalHash, useHash } from "@/lib/hash/store";
 import { usePool } from "@/lib/hash/usePool";
 
 export const Route = createFileRoute("/")({
@@ -41,7 +41,6 @@ function Home() {
         <h2 className="font-display text-2xl font-semibold">Projects</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {s.projects.map((p) => {
-            const c = curveFor(p.raise, p.th);
             return (
               <Link key={p.id} to="/project/$id" params={{ id: p.id }} className="block rounded-lg border border-border bg-card p-5 shadow-card transition hover:border-primary">
                 <div className="flex items-center justify-between">
@@ -49,16 +48,13 @@ function Home() {
                     <div className="font-display text-lg font-semibold">{p.name}</div>
                     <div className="text-sm text-muted-foreground">{p.place}</div>
                   </div>
-                  <span className="rounded-sm border border-border px-2 py-0.5 font-mono text-xs uppercase">{statusLabel(p.status)}</span>
+                  <Badge on>{stageBadge(p)}</Badge>
                 </div>
-                <div className="mt-4 text-sm text-muted-foreground">
-                  {p.solarKw} kW solar · {p.batteryKwh} kWh battery · +{p.th} TH
+                <div className="mt-3 text-sm text-muted-foreground">
+                  {p.solarKw} kW solar · {p.batteryKwh} kWh battery · {fmt(p.asic.th, 1)} TH planned
                 </div>
-                <div className="mt-4"><Bar value={p.raised / p.raise} /></div>
-                <div className="num mt-2 flex justify-between text-sm">
-                  <span>{usd(p.raised)} / {usd(p.raise)}</span>
-                  <span>{usd(price(c, p.raised), 3)} per HASH</span>
-                </div>
+                <div className="mt-4"><TwoStage p={p} /></div>
+                {p.asic.status === "Bonding" && <div className="mt-3 font-medium text-primary">Fund the miners →</div>}
               </Link>
             );
           })}
@@ -69,8 +65,8 @@ function Home() {
         <h2 className="font-display text-2xl font-semibold">How it works</h2>
         <ol className="mt-4 grid gap-4 md:grid-cols-4">
           {[
-            ["Bond", "Put USDC into a project. Early buyers get more HASH."],
-            ["Build", "Once full, we buy the solar, battery and miners and install them."],
+            ["Bond the project", "Small curve for land and the application. Early buyers get more HASH."],
+            ["Bond the ASICs", "Once the project fills, a miner curve opens. It buys the miners."],
             ["Mine", "The sun powers the miners. 80% of the Bitcoin goes to HASH holders."],
             ["Grow", "State solar payments buy more miners. Your HASH earns more."],
           ].map(([t, d], i) => (
@@ -81,7 +77,7 @@ function Home() {
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-sm text-muted-foreground">Changed your mind before a project fills? Pull your USDC for a $2.50 fee.</p>
+        <p className="mt-4 text-sm text-muted-foreground">Changed your mind before a curve fills? Pull your USDC for a $2.50 fee.</p>
       </section>
     </div>
   );
