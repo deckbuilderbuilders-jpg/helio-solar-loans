@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bar, Stat, fmt, usd } from "@/components/hash/Shell";
 import { curveFor, price } from "@/lib/hash/curve";
-import { liveTh, totalHash, useHash } from "@/lib/hash/store";
+import { liveTh, statusLabel, totalHash, useHash } from "@/lib/hash/store";
 import { usePool } from "@/lib/hash/usePool";
 
 export const Route = createFileRoute("/")({
@@ -49,7 +49,7 @@ function Home() {
                     <div className="font-display text-lg font-semibold">{p.name}</div>
                     <div className="text-sm text-muted-foreground">{p.place}</div>
                   </div>
-                  <span className="rounded-sm border border-border px-2 py-0.5 font-mono text-xs uppercase">{p.status}</span>
+                  <span className="rounded-sm border border-border px-2 py-0.5 font-mono text-xs uppercase">{statusLabel(p.status)}</span>
                 </div>
                 <div className="mt-4 text-sm text-muted-foreground">
                   {p.solarKw} kW solar · {p.batteryKwh} kWh battery · +{p.th} TH
