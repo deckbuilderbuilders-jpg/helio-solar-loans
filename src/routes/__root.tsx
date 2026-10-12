@@ -13,8 +13,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
-import { HelioProvider } from "@/lib/helio/store";
-import { Shell } from "@/components/helio/Shell";
+import { HashProvider } from "@/lib/hash/store";
+import { Shell } from "@/components/hash/Shell";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -82,11 +82,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "HELIO — Buy a panel. Burn it into a roof. Get paid by Ameren." },
-      { name: "description", content: "HELIO runs 90–120 day USDC bridge notes on Illinois solar + storage roofs, repaid by Ameren rebates and Illinois Shines REC payments." },
+      { title: "HELIO — Solar-powered Bitcoin mining DAO" },
+      { name: "description", content: "Bond USDC into solar projects, get HASH, earn 80% of the Bitcoin mined." },
       { name: "author", content: "HELIO" },
       { property: "og:title", content: "HELIO" },
-      { property: "og:description", content: "Real Illinois roofs. Panels at $400. Takeout paid by Ameren and Illinois Shines." },
+      { property: "og:description", content: "Bond USDC into solar projects, get HASH, earn 80% of the Bitcoin mined." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -125,7 +125,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const isWelcome = pathname === "/welcome" || pathname === "/solar";
+  const isWelcome = pathname === "/welcome";
 
   // First-time visitors to "/" see the splash once.
   useEffect(() => {
@@ -137,7 +137,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <HelioProvider>
+      <HashProvider>
         {isWelcome ? (
           <Outlet />
         ) : (
@@ -147,7 +147,7 @@ function RootComponent() {
           </Shell>
         )}
         <Toaster position="bottom-right" theme="light" richColors closeButton />
-      </HelioProvider>
+      </HashProvider>
     </QueryClientProvider>
   );
 }
