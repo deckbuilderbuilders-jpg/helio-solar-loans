@@ -34,6 +34,10 @@ function Portfolio() {
         <Stat label="Sats per day" value={fmt(mined24 ?? satsPerDay(s))} sub={mined24 !== null ? "Live from pool, after 20% DAO cut" : "Estimate, after 20% DAO cut"} />
         <Stat label="Ready to claim" value={`${fmt(s.sats)} sats`} />
       </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Stat label="Projects joined" value={fmt(s.projects.filter((p) => (p.holders.you ?? 0) > 0).length)} />
+        <Stat label="ASICs funded" value={fmt(s.asics.filter((a) => (a.holders.you ?? 0) > 0).length)} sub={`${fmt(s.asics.filter((a) => (a.holders.you ?? 0) > 0 && a.status === "Bonding").length)} still bonding`} />
+      </div>
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border border-border bg-card px-5 py-4 text-sm">
         <span className="flex items-center gap-2 font-mono text-xs uppercase">
           <span className={`size-2 rounded-full ${pool?.ok ? "bg-volt animate-pulse" : "bg-muted-foreground"}`} />
