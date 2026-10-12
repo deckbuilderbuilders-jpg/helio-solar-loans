@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bar, Stat, fmt, usd } from "@/components/hash/Shell";
 import { curveFor, price } from "@/lib/hash/curve";
 import { liveTh, totalHash, useHash } from "@/lib/hash/store";
+import { usePool } from "@/lib/hash/usePool";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { s } = useHash();
+  const { data: pool } = usePool();
+  const poolTh = pool?.ok ? pool.hashrateTH : 0;
   return (
     <div className="space-y-12">
       <section className="max-w-2xl">
@@ -29,7 +32,7 @@ function Home() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Network hashrate" value={`${fmt(liveTh(s))} TH`} sub="Grows with every project" />
+        <Stat label="Network hashrate" value={`${fmt(liveTh(s) + poolTh)} TH`} sub={pool?.ok ? `Live from pool · ${fmt(pool.sats24h)} sats in 24h` : "Grows with every project"} />
         <Stat label="HASH supply" value={fmt(totalHash(s))} sub="Minted only when projects bond" />
         <Stat label="Bitcoin split" value="80 / 20" sub="Holders / DAO" />
       </section>
