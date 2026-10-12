@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Hero } from "@/components/welcome/Hero";
 import { Pipeline, STEPS } from "@/components/welcome/Pipeline";
@@ -49,7 +49,7 @@ function Welcome() {
 
   return (
     <div className="min-h-screen overflow-x-clip">
-      {gate && <Gate onDone={() => setGate(false)} />}
+      <AnimatePresence>{gate && <Gate onDone={() => setGate(false)} />}</AnimatePresence>
 
       <header className="absolute inset-x-0 top-0 z-20">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 md:px-10">
