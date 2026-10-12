@@ -6,7 +6,7 @@ export function Ticker({ value, decimals = 0 }: { value: number; decimals?: numb
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
   const reduce = useReducedMotion();
-  const [n, setN] = useState(reduce ? value : 0);
+  const [n, setN] = useState(0);
   const last = useRef(0);
   useEffect(() => {
     if (!inView) return;
@@ -14,5 +14,5 @@ export function Ticker({ value, decimals = 0 }: { value: number; decimals?: numb
     const c = animate(last.current, value, { duration: 1.2, ease: [0.16, 1, 0.3, 1], onUpdate: (v) => { last.current = v; setN(v); } });
     return () => c.stop();
   }, [value, inView, reduce]);
-  return <span ref={ref}>{n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>;
+  return <span ref={ref}>{n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>;
 }
