@@ -34,6 +34,17 @@ function Portfolio() {
         <Stat label="Sats per day" value={fmt(mined24 ?? satsPerDay(s))} sub={mined24 !== null ? "Live from pool, after 20% DAO cut" : "Estimate, after 20% DAO cut"} />
         <Stat label="Ready to claim" value={`${fmt(s.sats)} sats`} />
       </div>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border border-border bg-card px-5 py-4 text-sm">
+        <span className="flex items-center gap-2 font-mono text-xs uppercase">
+          <span className={`size-2 rounded-full ${pool?.ok ? "bg-volt animate-pulse" : "bg-muted-foreground"}`} />
+          {pool?.ok ? (pool.online ? "Miner online" : "Miner offline") : "Pool not connected"}
+        </span>
+        {pool?.ok && <>
+          <span>Live hashrate <b className="font-mono">{fmt(pool.hashrateTH, 2)} TH</b></span>
+          <span>Mined all-time <b className="font-mono">{fmt(pool.satsTotal)} sats</b></span>
+          <span className="text-muted-foreground">Updated {new Date(pool.updatedAt).toLocaleTimeString()}</span>
+        </>}
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button onClick={claim} disabled={s.sats < 1}>Claim BTC</Button>
         <Button variant="secondary" onClick={() => mine(30)} disabled={!live}>Test: mine 30 days</Button>
