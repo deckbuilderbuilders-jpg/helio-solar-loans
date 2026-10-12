@@ -225,3 +225,45 @@ details.faq::details-content { block-size: 0; overflow: hidden; transition: bloc
 details.faq[open]::details-content { block-size: auto; }
 :root { interpolate-size: allow-keywords; }
 @media (prefers-reduced-motion: reduce) { .flow-dash { animation: none; } }
+
+/* Welcome is an editorial surface; app screens retain their existing styles. */
+.welcome-page {
+  background: var(--background);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  letter-spacing: 0;
+}
+.welcome-page h1, .welcome-page h2, .welcome-page h3, .welcome-page p,
+.welcome-page span, .welcome-page a, .welcome-page button { letter-spacing: 0; }
+.welcome-container { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: 40px; }
+.welcome-kicker { font-family: var(--font-mono); font-size: 10px; line-height: 1.5; color: var(--muted-foreground); }
+.welcome-heading { font-size: 44px; line-height: 1.12; font-weight: 500; }
+.welcome-hero { height: 740px; max-height: 1050px; overflow: hidden; }
+.welcome-hero-copy { padding-top: 48px; }
+.welcome-hero h1 { font-size: 76px; line-height: 1.02; }
+.welcome-hero-image { position: absolute; inset-inline: 0; bottom: 0; width: 100%; height: 540px; object-fit: cover; object-position: center bottom; }
+.welcome-hero { background: var(--background); }
+.welcome-station:hover svg { transform: translateY(-3px); }
+.welcome-station svg { transition: transform 220ms ease; }
+@media (min-width: 1500px) {
+  .welcome-hero-image { height: 660px; }
+  .welcome-hero { height: 830px; }
+}
+@media (max-height: 760px) and (min-width: 768px) {
+  .welcome-hero { height: 570px; }
+  .welcome-hero-copy { padding-top: 28px; }
+  .welcome-hero h1 { font-size: 60px; }
+  .welcome-hero-image { height: 340px; }
+}
+@media (max-width: 767px) {
+  .welcome-container { padding-inline: 24px; }
+  .welcome-heading { font-size: 32px; }
+  .welcome-hero { height: 630px; }
+  .welcome-hero-copy { padding-top: 42px; }
+  .welcome-hero h1 { font-size: 52px; }
+  .welcome-hero-image { height: 290px; width: 130%; max-width: none; left: -15%; }
+  .welcome-equipment-labels { bottom: 33px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-page *, .welcome-page *::before, .welcome-page *::after { animation: none !important; transition: none !important; }
+}
