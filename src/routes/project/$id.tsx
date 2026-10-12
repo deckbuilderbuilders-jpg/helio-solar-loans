@@ -35,7 +35,8 @@ function ProjectPage() {
 
   // Price curve: 21 points from empty to full.
   const pts = Array.from({ length: 21 }, (_, i) => price(c, (p.raise * i) / 20));
-  const max = pts[20];
+  const start = price(c, 0);
+  const max = price(c, p.raise);
   const path = pts.map((v, i) => `${i ? "L" : "M"}${i * 15},${100 - (v / max) * 95}`).join(" ");
   const nowX = (p.raised / p.raise) * 300;
 
@@ -50,7 +51,7 @@ function ProjectPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Price now" value={usd(price(c, p.raised), 3)} sub={`Starts at ${usd(pts[0], 3)} · ends at ${usd(max, 3)}`} />
+        <Stat label="Price now" value={usd(price(c, p.raised), 3)} sub={`Starts at ${usd(start, 3)} · ends at ${usd(max, 3)}`} />
         <Stat label="Bonded" value={`${usd(p.raised)} / ${usd(p.raise)}`} sub={<Bar value={p.raised / p.raise} />} />
         <Stat label="Your HASH" value={fmt(mine)} />
       </div>
