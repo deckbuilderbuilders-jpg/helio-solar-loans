@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, Banknote, Hammer, Sun, Cpu, Bitcoin } from "lucide-react";
 import network from "@/assets/welcome-network.jpg";
 
@@ -16,7 +16,9 @@ const CALLOUTS = ["USDC → HASH", "SOLAR + STORAGE + MINERS", "SUNLIGHT → ELE
 export function Pipeline() {
   const ref = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
-  const reduce = useReducedMotion();
+  const preference = useReducedMotion();
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => setReduce(Boolean(preference)), [preference]);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
   useMotionValueEvent(scrollYProgress, "change", (v) => setActive(Math.min(4, Math.max(0, Math.floor(v * 5)))));

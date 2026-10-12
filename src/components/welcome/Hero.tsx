@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import hero from "@/assets/welcome-network.jpg";
 
 export function Hero() {
-  const reduce = useReducedMotion();
+  const preference = useReducedMotion();
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => setReduce(Boolean(preference)), [preference]);
   const [opening, setOpening] = useState(true);
   useEffect(() => {
     const timer = window.setTimeout(() => setOpening(false), reduce ? 0 : 1100);
