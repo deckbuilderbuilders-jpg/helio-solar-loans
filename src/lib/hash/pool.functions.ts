@@ -29,14 +29,14 @@ export const getPoolReading = createServerFn({ method: "GET" }).handler(async ()
     }
     const j = (await r.json()) as { btc?: Record<string, string | number> };
     const b = j.btc ?? {};
-    const th = Number(b.hash_rate_5m ?? 0) * (UNIT[String(b.hash_rate_unit ?? "Gh/s")] ?? 1e-3);
+    const th = Number(b['hash_rate_5m'] ?? 0) * (UNIT[String(b['hash_rate_unit'] ?? "Gh/s")] ?? 1e-3);
     const v: PoolReading = {
       configured: true,
       ok: true,
       hashrateTH: th,
-      online: Number(b.ok_workers ?? 0) > 0 || th > 0,
-      sats24h: Math.round(Number(b.today_reward ?? 0) * 1e8),
-      satsTotal: Math.round(Number(b.all_time_reward ?? 0) * 1e8),
+      online: Number(b['ok_workers'] ?? 0) > 0 || th > 0,
+      sats24h: Math.round(Number(b['today_reward'] ?? 0) * 1e8),
+      satsTotal: Math.round(Number(b['all_time_reward'] ?? 0) * 1e8),
       updatedAt: now,
     };
     cache = { at: Date.now(), v };
